@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { DEFAULT_RADIUS_M, MAX_RADIUS_M, MIN_RADIUS_M } from '@/constants/alarms';
 
 export const DISTANCE_UNITS = ['km', 'mi'] as const;
+export type DistanceUnit = (typeof DISTANCE_UNITS)[number];
 export const ALARM_SOUND_IDS = ['classic', 'chime', 'beep'] as const;
 
 export const appSettingsSchema = z.object({

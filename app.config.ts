@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.0.0',
+  version: '0.1.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',
@@ -80,7 +80,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         icon: './assets/notifications/notification-icon.png',
         color: '#208AEF',
-        defaultChannel: 'journey',
+        defaultChannel: 'journey-v1',
         sounds: [
           './assets/sounds/alarm-classic.wav',
           './assets/sounds/alarm-chime.wav',
@@ -101,6 +101,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     ...config.extra,
+    // The pin picker reads this flag (never the key itself) to decide between
+    // the map and coordinate entry (plan D3).
+    googleMapsApiKeyConfigured: GOOGLE_MAPS_API_KEY.length > 0,
     router: {
       asyncRoutes: {
         web: true,

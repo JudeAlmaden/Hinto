@@ -11,16 +11,27 @@ export const ALARM_SOUNDS: readonly AlarmSoundId[] = ['classic', 'chime', 'beep'
 
 /** Channel ids are versioned because Android applies channel settings only at creation. */
 export const NOTIFICATION_CHANNELS = {
-  journey: 'journey',
-  alarm: 'alarm',
+  journey: 'journey-v1',
+  alarm: 'alarm-v1',
 } as const;
 
 export type AlarmAction = 'end' | 'snooze' | 'dismiss';
 
 export interface AlarmRequest {
   journeyId: string;
+  alertId: string | null;
   destinationName: string;
   distanceM: number;
   sound: AlarmSoundId;
   snoozeMinutes: number;
+  vibration: boolean;
+  repeatUntilDismissed: boolean;
+  stageIndex: number;
+  /** The stage was inferred from a segment crossing, not a point inside it. */
+  estimateOnly: boolean;
+}
+
+export interface ActiveAlarm extends AlarmRequest {
+  startedAt: number;
+  snoozedUntil: number | null;
 }

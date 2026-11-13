@@ -1,6 +1,5 @@
 /**
  * Places — saved destinations (spec §4.3, §10).
- * Repository + Zustand cache land in Phase 2.
  */
 
 export type PlaceCategory = 'home' | 'school' | 'work' | 'terminal' | 'other';
@@ -35,4 +34,22 @@ export interface Destination {
   latitude: number;
   longitude: number;
   placeId?: string | null;
+}
+
+/** A Photon result. `placeId` is always null until the user saves it (D17). */
+export interface PlaceSearchResult {
+  name: string;
+  subtitle: string | null;
+  latitude: number;
+  longitude: number;
+  placeId: string | null;
+}
+
+/** Most-used-first ordering source for Home ("Recent"). */
+export interface RecentDestination {
+  name: string;
+  latitude: number;
+  longitude: number;
+  placeId: string | null;
+  lastUsedAt: number;
 }

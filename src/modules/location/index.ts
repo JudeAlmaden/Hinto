@@ -18,6 +18,8 @@ export interface TrackingSnapshot {
   accuracyM: number | null;
   gpsAvailable: boolean | null;
   networkAvailable: boolean | null;
+  /** D7 heuristic: this phone appears to be delaying location updates. */
+  restrictionSuspected: boolean;
 }
 
 export interface AdaptivePolicy {

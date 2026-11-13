@@ -5,6 +5,8 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-13
+
 ### Added
 - Android-first project foundations: `app.config.ts` replaces `app.json` with
   background/foreground-service location, notification channels and bundled
@@ -48,8 +50,42 @@ All notable changes to Hinto are documented here. Versions follow
   no places exist yet.
 - 24 further unit tests over the settings contract, place mapping/validation and
   the migration registry (35 in total).
+- Saved places: list with search, category filters and favourites first, plus
+  create, edit, duplicate, delete and favourite, backed by a Zustand cache over
+  SQLite.
+- Destination selection: Photon search behind one module (350 ms debounce,
+  1 request/second, 24 h cache, 10-result cap, OpenStreetMap attribution),
+  offline degradation to saved places, and a pin picker with coordinate entry
+  when no Google Maps key is configured.
+- Geofence engine: haversine and segment distance, a pure per-sample trigger
+  state machine (50 m accuracy gate, one alert per stage, innermost stage,
+  overshoot estimates, D14 freshness) and the adaptive policy table.
+- Journey lifecycle: `prepared → active → paused → triggered → completed |
+  cancelled | interrupted`, destination snapshots, alert-rule rewriting and the
+  D9 metrics inputs.
+- Background tracking: foreground-service location task, adaptive policy,
+  watchdog (60 s waiting, 3 min stale, 10 min interrupted), boot/unclean-exit
+  recovery prompt and the D7 battery-restriction heuristic.
+- Alarm experience: an immediate max-importance `alarm-v1` notification plus a
+  looping `expo-audio` alarm with lock-screen controls and a 3-minute ceiling,
+  vibration, hold-to-confirm end, snooze with a real deadline, silence with
+  confirmation, a notification deep link and a test alarm.
+- Screens for Home (readiness, active journey, saved/recent), journey setup,
+  active journey, journey options, alarm, alarm test, history list/detail,
+  settings, sound picker, permissions, diagnostics and the eight-screen
+  onboarding flow.
+- Local D9 metrics over a 30-day window and a diagnostics export that carries
+  aggregates only.
+- `eas.json` development, preview and production Android profiles.
+- 95 further unit tests (130 in total): trigger, distance, policy, battery
+  heuristic, watchdog, formatting, history projection, metrics, search parsing
+  and the D17 offline run-path guard.
 
 ### Changed
+- Notification channels are versioned (`journey-v1`, `alarm-v1`) and the config's
+  default channel now matches the runtime id.
+- The pin picker reads a boolean `googleMapsApiKeyConfigured` from app config
+  instead of the API key itself.
 - CI now lints, bundles, typechecks and tests; the build runs before typecheck
   because it generates the git-ignored `expo-env.d.ts`.
 - Storage uses one lazily opened handle per process instead of a React
@@ -58,41 +94,55 @@ All notable changes to Hinto are documented here. Versions follow
 - Jest resolves the `@/` alias so tests can import application modules.
 - Web renders an "Android build" notice instead of initialising storage
   (Android-only release scope).
+- Metro keeps `wasm` as an asset extension and sets COEP/COOP headers so the
+  `expo-sqlite` web worker loads on the dev server.
 
 ### Removed
-- `app.json` (superseded by `app.config.ts`), the demo `explore` screen and its
-  showcase components (`external-link`, `hint-row`, `web-badge`, `collapsible`),
-  and the demo `explore` tab icons.
+- `app.json` (superseded by `app.config.ts`) and the demo screen set:
+  `src/app/index.tsx`, `src/app/explore.tsx`,
+  `src/components/{external-link,hint-row,web-badge}.tsx`,
+  `src/components/ui/collapsible.tsx`, and the demo `explore` tab icons.
+- `src/components/placeholder-screen.tsx`, now that every tab has a real screen.
 
 ### Fixed
 - `npx tsc --noEmit` failures on CSS module imports and the web tab bar ref
   typing, via committed declarations and a simpler web shell.
+- Web tab bar `Link` href typing and sub-kilometre distance rounding that could
+  print "1000 m".
 - Missing `expo-asset` peer dependency reported by `expo-doctor`.
 - Jest packages installed as runtime dependencies by `expo install`.
 
 ### Technical
 - Modified: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`,
-  `src/app/_layout.tsx`, `src/components/app-tabs.tsx`,
-  `src/components/app-tabs.web.tsx`, `src/modules/diagnostics/index.ts`,
-  `assets/images/tabIcons/home.png`
-- New: `app.config.ts`, `types/css.d.ts`, `src/constants/{alarms,strings}.ts`,
-  `src/components/{error-boundary,placeholder-screen}.tsx`,
-  `src/app/(tabs)/*`, `src/modules/*`, `src/constants/__tests__/alarms.test.ts`,
-  `src/db/{client,migrate,seed,id,types}.ts`, `src/db/migrations/*`,
-  `src/modules/{places,journeys,settings,diagnostics}/repository.ts`,
-  `src/modules/settings/schema.ts`, `scripts/generate-assets.mjs`,
-  `assets/notifications/*`, `assets/sounds/*`, `docs/device-test-log.md`,
-  `IMPLEMENTATION_PLAN.md`, `WIREFRAMES.md`
+  `app.config.ts`, `src/app/_layout.tsx`, `src/app/(tabs)/*`,
+  `src/components/app-tabs.web.tsx`, `src/constants/{strings,theme}.ts`,
+  `src/modules/{alarm,geofence,journeys,location,places,settings}/index.ts`,
+  `src/modules/journeys/repository.ts`, `src/modules/settings/schema.ts`.
+- New: `app.config.ts`, `metro.config.js`, `eas.json`, `types/{css.d.ts,
+  node-shims.d.ts}`, `src/constants/alarms.ts`,
+  `src/components/{error-boundary,place-form,permission-step,onboarding-shell}.tsx`,
+  `src/components/ui/*`, `src/hooks/*`, `src/app/{place,destination,journey,
+  history,settings,onboarding}/*`, `src/app/{alarm,alarm-test}.tsx`,
+  `src/modules/{places,journeys,geofence,location,alarm,battery,permissions,
+  stats,history,diagnostics}/*`, `src/db/*`, `src/db/migrations/*`,
+  `scripts/generate-assets.mjs`, `assets/{notifications,sounds}/*`,
+  `IMPLEMENTATION_PLAN.md`, `WIREFRAMES.md`, `docs/device-test-log.md`.
 - Deleted: `app.json`, `src/app/index.tsx`, `src/app/explore.tsx`,
   `src/components/{external-link,hint-row,web-badge}.tsx`,
-  `src/components/ui/collapsible.tsx`
-- Dependency: added `expo-file-system` (reset backup) and `expo-asset`
-  (peer of `expo-audio`).
-- Tests: 35 passing. Repository SQL was exercised locally against a real SQLite
-  engine through a throw-away `node:sqlite` harness (deleted afterwards), so CI
-  does not cover it yet; device behaviour with `expo-sqlite` is unverified.
-- Tests: 11 passing — lint, typecheck, `expo-doctor` (20/20) and the Android
-  export all clean. Device boot not yet verified.
+  `src/components/ui/collapsible.tsx`, `src/components/placeholder-screen.tsx`.
+- Dependencies: added `expo-location`, `expo-task-manager`, `expo-notifications`,
+  `expo-audio`, `expo-battery`, `expo-device`, `expo-intent-launcher`,
+  `expo-maps`, `@react-native-community/netinfo`, `expo-file-system`,
+  `expo-asset`, `zod` and `zustand`; added `jest`, `jest-expo`, `@types/jest`.
+- Tests: 130 passing across 14 suites. Repository SQL was exercised locally
+  against a real SQLite engine through a throw-away `node:sqlite` harness
+  (deleted afterwards), so CI does not cover it; lint, typecheck, `expo-doctor`
+  (20/20) and the Android export are clean.
+- Known limitations: no physical-device verification yet (screen-locked
+  audibility, 30-minute screen-off tracking, real-travel alerts); the exact
+  Android `BOOT_COMPLETED` receiver from D2 is not built, so recovery comes from
+  the freshness/unclean-exit check instead; Play Store declarations and listing
+  work are outstanding.
 
 ## [0.0.0] - 2026-11-13
 

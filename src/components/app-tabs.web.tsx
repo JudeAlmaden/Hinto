@@ -1,4 +1,4 @@
-import { Link, Slot, usePathname } from 'expo-router';
+import { Link, Slot, usePathname, type Href } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -35,7 +35,7 @@ export default function AppTabs() {
   );
 }
 
-function TabLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+function TabLink({ href, label, active }: { href: Href; label: string; active: boolean }) {
   return (
     <Link href={href} style={styles.link}>
       <ThemedText type="small" themeColor={active ? 'text' : 'textSecondary'}>

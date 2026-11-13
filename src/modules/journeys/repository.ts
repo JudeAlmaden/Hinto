@@ -358,3 +358,131 @@ export async function snoozeJourneyAlert(
 ): Promise<void> {
   await db.runAsync('UPDATE journey_alerts SET snoozed_until = ? WHERE id = ?', until, id);
 }
+
+/** Clears a snooze deadline ("Wake now"). */
+export async function clearJourneyAlertSnooze(db: SqlDatabase, id: string): Promise<void> {
+  await db.runAsync('UPDATE journey_alerts SET snoozed_until = NULL WHERE id = ?', id);
+}
+
+/** Newest alert for a journey, used by the alarm screen. */
+export async function getLatestJourneyAlert(
+  db: SqlDatabase,
+  journeyId: string,
+): Promise<JourneyAlert | null> {
+  const row = await db.getFirstAsync<AlertRow>(
+    'SELECT * FROM journey_alerts WHERE journey_id = ? ORDER BY triggered_at DESC LIMIT 1',
+    journeyId,
+  );
+  return row ? mapAlertRow(row) : null;
+}
+
+/** Alerts for several journeys in one query (History avoids N+1). */
+export async function listAlertsForJourneys(
+  db: SqlDatabase,
+  journeyIds: readonly string[],
+): Promise<JourneyAlert[]> {
+  if (journeyIds.length === 0) return [];
+  const placeholders = journeyIds.map(() => '?').join(', ');
+  const rows = await db.getAllAsync<AlertRow>(
+    `SELECT * FROM journey_alerts WHERE journey_id IN (${placeholders}) ORDER BY triggered_at ASC`,
+    ...journeyIds,
+  );
+  return rows.map(mapAlertRow);
+}
+
+/**
+ * Replaces every warning rule for a journey (journey options sheet, plan
+ * Phase 7). Stage indexes run from 0 (earliest) up to the primary radius, which
+ * always has the highest index.
+ */
+export async function replaceAlertRules(
+  db: SqlDatabase,
+  journeyId: string,
+  rules: readonly { radiusM: number; stageIndex: number }[],
+): Promise<void> {
+  const primary = rules.reduce(
+    (innermost, rule) => (rule.stageIndex > innermost.stageIndex ? rule : innermost),
+    rules[0],
+  );
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM journey_alert_rules WHERE journey_id = ?', journeyId);
+    for (const rule of rules) {
+      await db.runAsync(
+        'INSERT INTO journey_alert_rules (id, journey_id, radius_m, stage_index) VALUES (?, ?, ?, ?)',
+        createId(),
+        journeyId,
+        rule.radiusM,
+        rule.stageIndex,
+      );
+    }
+    if (primary) {
+      await db.runAsync('UPDATE journeys SET radius_m = ? WHERE id = ?', primary.radiusM, journeyId);
+    }
+  });
+}
+
+/** Changes only the primary radius, keeping earlier warnings (Phase 7). */
+export async function updatePrimaryRadius(
+  db: SqlDatabase,
+  journeyId: string,
+  radiusM: number,
+): Promise<void> {
+  if (!isRadiusValid(radiusM)) {
+    throw new Error(`Radius must be between ${MIN_RADIUS_M} m and ${MAX_RADIUS_M} m.`);
+  }
+  const existing = await listAlertRules(db, journeyId);
+  const primaryIndex = existing.length > 0 ? Math.max(...existing.map((rule) => rule.stageIndex)) : 0;
+  const earlier = existing.filter((rule) => rule.stageIndex < primaryIndex);
+
+  await replaceAlertRules(db, journeyId, [
+    ...earlier.map((rule) => ({ radiusM: rule.radiusM, stageIndex: rule.stageIndex })),
+    { radiusM, stageIndex: primaryIndex },
+  ]);
+}
+
+/** Destinations for Home's "Recent" list, newest first, de-duplicated by name+point. */
+export async function listRecentDestinations(
+  db: SqlDatabase,
+  limit = 5,
+) {
+  const rows = await db.getAllAsync<{
+    name: string;
+    latitude: number;
+    longitude: number;
+    place_id: string | null;
+    last_used_at: number;
+  }>(
+    `SELECT destination_name AS name, destination_latitude AS latitude,
+            destination_longitude AS longitude, place_id, MAX(created_at) AS last_used_at
+     FROM journeys
+     GROUP BY destination_name, destination_latitude, destination_longitude
+     ORDER BY last_used_at DESC
+     LIMIT ?`,
+    limit,
+  );
+
+  return rows.map((row) => ({
+    name: row.name,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    placeId: row.place_id,
+    lastUsedAt: row.last_used_at,
+  }));
+}
+
+/** Removes terminal journeys only; an active journey is never deleted (Phase 8). */
+export async function clearJourneyHistory(db: SqlDatabase): Promise<void> {
+  await db.runAsync(
+    "DELETE FROM journeys WHERE status IN ('completed', 'cancelled', 'interrupted')",
+  );
+}
+
+/** "Delete all data": places, journeys and diagnostics. Settings survive. */
+export async function deleteAllData(db: SqlDatabase): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM journeys');
+    await db.runAsync('DELETE FROM places');
+    await db.runAsync('DELETE FROM diagnostic_events');
+  });
+}
