@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint & Build
+    name: Lint, Typecheck, Test & Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,14 @@ jobs:
 
       - name: Build frontend (Expo export)
         run: npm run build
+
+      # Typecheck runs after the build on purpose: `expo export` generates the
+      # git-ignored expo-env.d.ts that carries Expo's ambient declarations.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
 
   release:
     name: Publish Release
