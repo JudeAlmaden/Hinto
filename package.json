@@ -1,6 +1,6 @@
 {
   "name": "hinto",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/ui": "~58.0.28",
@@ -39,7 +39,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build": "expo export --platform android --output-dir dist"
   },
   "private": true
 }

@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# AI assistant artifacts
+.agents/RECENT_CHANGES.md
