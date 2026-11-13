@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "abot",
-    "slug": "abot",
+    "name": "Hinto",
+    "slug": "hinto",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "abot",
+    "scheme": "hinto",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -37,6 +37,17 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "3c4796ed-ae8c-418a-95bf-ed92a252a0a2"
+      }
+    },
+    "owner": "judealmadens-team"
   }
 }
