@@ -27,10 +27,35 @@ All notable changes to Hinto are documented here. Versions follow
   and sample freshness.
 - Planning documents: `IMPLEMENTATION_PLAN.md`, `WIREFRAMES.md` and
   `docs/device-test-log.md`.
+- Local SQLite data layer: the spec §10 schema with a forward-only migration
+  registry keyed on `PRAGMA user_version`, plus the multi-stage warning tables
+  (`journey_alert_rules`, `journey_alerts.stage_index`/`accuracy_m`) and the
+  metrics columns (`entered_radius_at`, `start_battery_pct`, `end_battery_pct`).
+- Database client with WAL, foreign keys, an integrity check, a transactional
+  migration, a subscribable storage snapshot, `retryStorage()` and a
+  user-initiated `resetStorage()` that keeps the old file as
+  `hinto.db.corrupt-<timestamp>`.
+- Repositories for places (search, favourites-first ordering, validated CRUD),
+  journeys (destination snapshot, alert rules, active-journey lookup, alert
+  dismiss/snooze), settings and diagnostics, all written against the
+  driver-agnostic `SqlDatabase` interface.
+- Typed settings accessor: the closed D5 key set as a Zod schema with defaults,
+  per-key fallback for invalid stored values, and JSON encoding in the
+  `settings` table.
+- Persisted diagnostics: events captured by the error boundary and session
+  marker are written to `diagnostic_events`, trimmed to a 500-row retention.
+- Development-only fixtures (Home/Work/Terminal) seeded in `__DEV__` builds when
+  no places exist yet.
+- 24 further unit tests over the settings contract, place mapping/validation and
+  the migration registry (35 in total).
 
 ### Changed
 - CI now lints, bundles, typechecks and tests; the build runs before typecheck
   because it generates the git-ignored `expo-env.d.ts`.
+- Storage uses one lazily opened handle per process instead of a React
+  `SQLiteProvider`, so the Phase 5 background task shares the same connection
+  and migration; the root layout opens it once on native and skips it on web.
+- Jest resolves the `@/` alias so tests can import application modules.
 - Web renders an "Android build" notice instead of initialising storage
   (Android-only release scope).
 
@@ -48,16 +73,24 @@ All notable changes to Hinto are documented here. Versions follow
 ### Technical
 - Modified: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`,
   `src/app/_layout.tsx`, `src/components/app-tabs.tsx`,
-  `src/components/app-tabs.web.tsx`, `assets/images/tabIcons/home.png`
+  `src/components/app-tabs.web.tsx`, `src/modules/diagnostics/index.ts`,
+  `assets/images/tabIcons/home.png`
 - New: `app.config.ts`, `types/css.d.ts`, `src/constants/{alarms,strings}.ts`,
   `src/components/{error-boundary,placeholder-screen}.tsx`,
   `src/app/(tabs)/*`, `src/modules/*`, `src/constants/__tests__/alarms.test.ts`,
-  `scripts/generate-assets.mjs`, `assets/notifications/*`,
-  `assets/sounds/*`, `docs/device-test-log.md`, `IMPLEMENTATION_PLAN.md`,
-  `WIREFRAMES.md`
+  `src/db/{client,migrate,seed,id,types}.ts`, `src/db/migrations/*`,
+  `src/modules/{places,journeys,settings,diagnostics}/repository.ts`,
+  `src/modules/settings/schema.ts`, `scripts/generate-assets.mjs`,
+  `assets/notifications/*`, `assets/sounds/*`, `docs/device-test-log.md`,
+  `IMPLEMENTATION_PLAN.md`, `WIREFRAMES.md`
 - Deleted: `app.json`, `src/app/index.tsx`, `src/app/explore.tsx`,
   `src/components/{external-link,hint-row,web-badge}.tsx`,
   `src/components/ui/collapsible.tsx`
+- Dependency: added `expo-file-system` (reset backup) and `expo-asset`
+  (peer of `expo-audio`).
+- Tests: 35 passing. Repository SQL was exercised locally against a real SQLite
+  engine through a throw-away `node:sqlite` harness (deleted afterwards), so CI
+  does not cover it yet; device behaviour with `expo-sqlite` is unverified.
 - Tests: 11 passing — lint, typecheck, `expo-doctor` (20/20) and the Android
   export all clean. Device boot not yet verified.
 

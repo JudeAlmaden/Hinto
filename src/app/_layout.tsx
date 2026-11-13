@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
+import { openDatabase } from '@/db/client';
 import { markSessionStart } from '@/modules/diagnostics';
 
 SplashScreen.preventAutoHideAsync();
@@ -36,7 +37,12 @@ export default function RootLayout() {
     // The animated overlay hides the splash on native; web has no overlay.
     if (Platform.OS === 'web') {
       SplashScreen.hideAsync().catch(() => undefined);
+      return;
     }
+
+    // Opens, migrates and health-checks storage once for the whole process (D6).
+    // A failure surfaces through getStorageSnapshot(); it must not block boot.
+    openDatabase().catch(() => undefined);
   }, []);
 
   return (

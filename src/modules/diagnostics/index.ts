@@ -1,9 +1,10 @@
 /**
  * Diagnostics — local, privacy-conscious event log (spec §10, plan D10).
  *
- * Phase 0 keeps a bounded in-memory ring buffer so the error boundary and
- * session events work before the database exists. Phase 1 replaces the sink
- * with the persisted `diagnostic_events` table; the call sites stay the same.
+ * A bounded in-memory ring buffer keeps the error boundary and session events
+ * working even when storage is unavailable; once the database is open the
+ * client installs a sink that also persists every event to `diagnostic_events`
+ * (`./repository.ts`), keeping the call sites unchanged.
  *
  * Rule: never store coordinates, names or free text from the user here.
  */
@@ -30,18 +31,35 @@ export interface DiagnosticEvent {
 const MAX_EVENTS = 100;
 const buffer: DiagnosticEvent[] = [];
 
+export type DiagnosticSink = (event: DiagnosticEvent) => void;
+
+let sink: DiagnosticSink | null = null;
+
+/** Installed by the database client once storage is healthy (or cleared on reset). */
+export function configureDiagnosticsSink(next: DiagnosticSink | null): void {
+  sink = next;
+}
+
 export function capture(
   kind: DiagnosticKind,
   name: string,
   meta?: DiagnosticEvent['meta'],
 ): void {
-  buffer.push({ kind, name, timestamp: Date.now(), meta });
+  const event: DiagnosticEvent = { kind, name, timestamp: Date.now(), meta };
+  buffer.push(event);
   if (buffer.length > MAX_EVENTS) {
     buffer.splice(0, buffer.length - MAX_EVENTS);
   }
 
   if (__DEV__) {
     console.log(`[hinto:${kind}] ${name}`, meta ?? '');
+  }
+
+  // Persistence is best effort: diagnostics must never break a user flow.
+  try {
+    sink?.(event);
+  } catch {
+    // ignore
   }
 }
 
