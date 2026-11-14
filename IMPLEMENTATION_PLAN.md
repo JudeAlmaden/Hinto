@@ -499,8 +499,9 @@ Work:
    `AppSettings` schema, with the exact key set and defaults listed in the
    decision register (radius, sound, vibration, repeat, snooze, hold-to-dismiss,
    battery saver, distance unit, onboarding version).
-6. Seed a development-only fixture set behind `__DEV__` (never in release
-   builds).
+6. ~~Seed a development-only fixture set behind `__DEV__`~~ — removed: the fake
+   Home/Work/Terminal places read as real data. A one-time dev cleanup deletes
+   rows from old builds; new installs start with no places.
 7. Storage health and recovery per **D6**: wrap each migration in a
    transaction, run the `integrity_check`/`user_version` startup check, and
    expose a `storageStatus` value (`ok` | `unavailable`) plus `resetDatabase()`

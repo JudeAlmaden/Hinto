@@ -56,7 +56,9 @@ export default function PlacesScreen() {
       title={strings.places.title}
       tabInset
       right={
-        <Pressable onPress={() => router.push('/place/new')} hitSlop={12}>
+        <Pressable
+          onPress={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
+          hitSlop={12}>
           <ThemedText style={styles.plus}>+</ThemedText>
         </Pressable>
       }>
@@ -92,7 +94,7 @@ export default function PlacesScreen() {
           title={strings.places.emptyTitle}
           body={strings.places.emptyBody}
           actionLabel={strings.places.addPlace}
-          onAction={() => router.push('/place/new')}
+          onAction={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
         />
       ) : filtered.length === 0 ? (
         <EmptyState title={strings.places.filterEmpty} body={strings.places.emptyBody} />

@@ -13,7 +13,7 @@ import { capture, configureDiagnosticsSink } from '@/modules/diagnostics';
 import { insertDiagnosticEvent, pruneDiagnosticEvents } from '@/modules/diagnostics/repository';
 
 import { SchemaTooNewError, checkIntegrity, runMigrations } from './migrate';
-import { seedDevelopmentData } from './seed';
+import { removeLegacyDevelopmentFixtures } from './cleanup';
 import type { SqlDatabase } from './types';
 
 export const DATABASE_NAME = 'hinto.db';
@@ -92,7 +92,9 @@ async function prepare(): Promise<SQLite.SQLiteDatabase> {
   const schemaVersion = await runMigrations(db, (name, meta) => capture('db', name, meta));
 
   if (__DEV__) {
-    await seedDevelopmentData(db);
+    // Old debug builds seeded three fake places; drop them without touching
+    // anything the user saved.
+    await removeLegacyDevelopmentFixtures(db).catch(() => undefined);
   }
 
   update({ state: 'ok', schemaVersion, integrityOk, error: null });

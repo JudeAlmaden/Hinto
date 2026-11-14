@@ -112,6 +112,9 @@ export default function DestinationSearchScreen() {
       {!offline && results.length > 0 ? (
         <>
           <SectionLabel>{strings.destination.results}</SectionLabel>
+          <ThemedText type="small" themeColor="textSecondary">
+            {strings.destination.saveHint}
+          </ThemedText>
           <View>
             {results.map((result) => (
               <DestinationCard
@@ -124,6 +127,16 @@ export default function DestinationSearchScreen() {
                     latitude: result.latitude,
                     longitude: result.longitude,
                     placeId: null,
+                  })
+                }
+                onLongPress={() =>
+                  router.push({
+                    pathname: '/place/new',
+                    params: {
+                      latitude: result.latitude.toFixed(6),
+                      longitude: result.longitude.toFixed(6),
+                      name: result.name,
+                    },
                   })
                 }
               />

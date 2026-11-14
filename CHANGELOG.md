@@ -5,6 +5,42 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-14
+
+### Added
+- Saving a place is now a flow, not a form: icon and name preview, tag chips, a
+  12-emoji icon picker (defaults from the tag), an explained alert radius,
+  collapsible coordinates, and a "Saved to Places" banner with **Start journey**
+  on the saved place.
+- Entry points: the pin picker prefills a geocoded name, search results can be
+  long-pressed to save, and journey options offer "Save this destination".
+- Duplicate guard: the same name within 50 m asks before saving a second copy.
+- A one-time dev cleanup deletes the seeded demo places (Home/Work/Terminal)
+  without touching real places; the seeding itself is gone.
+
+### Changed
+- Place rows show their tag instead of the raw category key and "Alerts at
+  1.0 km" instead of an unlabelled radius, and use the saved icon when set.
+- "Add a place" (Places +, the empty state and Home) now opens the map pin
+  picker, where saving to Places is the primary action; the form only opens with
+  a real point attached.
+
+### Fixed
+- Blank latitude/longitude fields no longer parse as `0`, which showed
+  `0.0000, 0.0000` and would have saved a place at 0,0.
+
+### Removed
+- The development-only Home/Work/Terminal places and the seeding that created
+  them; a one-time cleanup removes the rows left by older builds.
+
+### Technical
+- New: `src/modules/places/icons.ts`, `src/modules/places/duplicates.ts`,
+  `src/modules/maps/label.ts`, `src/db/cleanup.ts`.
+- Removed: `src/db/seed.ts`.
+- `place-form.tsx` gained the tag/icon/duplicate flow and `onSaved(placeId)`;
+  `PlaceCard`/`PlaceIcon` now take the stored icon.
+- Tests: 142 passing across 17 suites — lint and typecheck clean.
+
 ## [0.2.1] - 2026-11-14
 
 ### Added

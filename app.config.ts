@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.2.1',
+  version: '0.3.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',

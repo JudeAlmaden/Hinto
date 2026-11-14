@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { PlaceForm } from '@/components/place-form';
-import { AppButton } from '@/components/ui/controls';
+import { AppButton, Card } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
 import { Screen } from '@/components/ui/screen';
 import { formatCopy, strings } from '@/constants/strings';
@@ -14,8 +14,9 @@ import { journeySetupParams } from '@/utils/navigation';
 
 export default function PlaceDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; saved?: string }>();
   const id = typeof params.id === 'string' ? params.id : '';
+  const justSaved = params.saved === '1';
 
   const places = usePlacesStore((state) => state.places);
   const load = usePlacesStore((state) => state.load);
@@ -55,6 +56,12 @@ export default function PlaceDetailScreen() {
 
   return (
     <Screen title={strings.place.editTitle} back>
+      {justSaved ? (
+        <Card style={styles.savedBanner}>
+          <ThemedText type="smallBold">{strings.place.savedBanner}</ThemedText>
+        </Card>
+      ) : null}
+
       <PlaceForm initial={place} onSaved={() => router.back()} />
 
       <View style={styles.actions}>
@@ -89,6 +96,9 @@ export default function PlaceDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  savedBanner: {
+    paddingVertical: Spacing.three,
+  },
   actions: {
     gap: Spacing.two,
     paddingTop: Spacing.two,

@@ -2,25 +2,21 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { formatCopy, strings } from '@/constants/strings';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Place, PlaceCategory } from '@/modules/places';
+import { defaultIconFor } from '@/modules/places/icons';
 import { formatDistance } from '@/utils/format';
-
-const CATEGORY_GLYPHS: Record<PlaceCategory, string> = {
-  home: '🏠',
-  school: '🏫',
-  work: '💼',
-  terminal: '🚌',
-  other: '📍',
-};
 
 export function PlaceIcon({
   category,
+  icon,
   size = 44,
   color,
 }: {
   category: PlaceCategory;
+  icon?: string | null;
   size?: number;
   color?: string | null;
 }) {
@@ -37,7 +33,7 @@ export function PlaceIcon({
           backgroundColor: color ?? theme.backgroundSelected,
         },
       ]}>
-      <ThemedText style={{ fontSize: size * 0.46 }}>{CATEGORY_GLYPHS[category]}</ThemedText>
+      <ThemedText style={{ fontSize: size * 0.46 }}>{icon ?? defaultIconFor(category)}</ThemedText>
     </View>
   );
 }
@@ -68,7 +64,7 @@ export function PlaceCard({
         styles.row,
         { borderBottomColor: theme.border, opacity: pressed ? 0.6 : 1 },
       ]}>
-      <PlaceIcon category={place.category} color={place.color} />
+      <PlaceIcon category={place.category} icon={place.icon} color={place.color} />
       <View style={styles.text}>
         <ThemedText numberOfLines={1} style={styles.name}>
           {place.name}
@@ -76,15 +72,18 @@ export function PlaceCard({
         </ThemedText>
         {showCategory ? (
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-            {place.category}
+            {strings.place.categories[place.category]}
             {distanceM !== undefined && distanceM !== null
               ? ` · ${formatDistance(distanceM, unit)}`
               : ''}
           </ThemedText>
         ) : null}
       </View>
-      <ThemedText type="small" themeColor="textSecondary">
-        {formatDistance(place.defaultRadiusM, unit)} ›
+      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+        {formatCopy(strings.places.alertsAt, {
+          distance: formatDistance(place.defaultRadiusM, unit),
+        })}{' '}
+        ›
       </ThemedText>
     </Pressable>
   );
@@ -94,10 +93,12 @@ export function DestinationCard({
   name,
   subtitle,
   onPress,
+  onLongPress,
 }: {
   name: string;
   subtitle?: string | null;
   onPress: () => void;
+  onLongPress?: () => void;
 }) {
   const theme = useTheme();
 
@@ -105,6 +106,7 @@ export function DestinationCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      onLongPress={onLongPress}
       style={({ pressed }) => [
         styles.row,
         { borderBottomColor: theme.border, opacity: pressed ? 0.6 : 1 },

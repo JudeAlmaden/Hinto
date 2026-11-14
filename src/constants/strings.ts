@@ -107,6 +107,7 @@ export const strings = {
     invalidCoordinates: 'Enter a latitude between -90 and 90 and a longitude between -180 and 180.',
     mapFailed: 'The map could not load — check your connection. Coordinates still work.',
     chooseDestination: 'Choose a destination',
+    saveHint: 'Long-press a result to save it as a place.',
   },
 
   places: {
@@ -122,6 +123,7 @@ export const strings = {
     usedRecently: 'Used recently',
     longPressHint: 'Long-press a place to start a journey.',
     filterEmpty: 'Nothing matches this filter.',
+    alertsAt: 'Alerts at {distance}',
   },
 
   place: {
@@ -137,6 +139,17 @@ export const strings = {
     favourite: 'Favourite',
     save: 'Save',
     savedToast: 'Place saved',
+    savedBanner: 'Saved to Places',
+    nameRequired: 'Give this place a name.',
+    tag: 'Tag',
+    icon: 'Icon',
+    radiusHelp: 'Rings when you are within {distance} of the pin.',
+    advancedCoordinates: 'Enter coordinates',
+    hideCoordinates: 'Hide coordinates',
+    saveDestination: 'Save this destination',
+    duplicateTitle: 'Already saved as {name}',
+    duplicateBody: 'You already have a place with this name within 50 m of this spot.',
+    duplicateConfirm: 'Save anyway',
     delete: 'Delete place',
     deleteTitle: 'Delete {name}?',
     deleteBody: 'Active journeys keep their saved destination.',

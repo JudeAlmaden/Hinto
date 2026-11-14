@@ -1,5 +1,4 @@
-import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -13,29 +12,19 @@ import { Radii, Spacing } from '@/constants/theme';
 import { isValidLatitude, isValidLongitude } from '@/modules/geofence/distance';
 import { currentLocation } from '@/modules/location/service';
 import { offlinePinLabel, type PinPoint } from '@/modules/maps';
+import { suggestPlaceName } from '@/modules/maps/label';
 import { useSettings } from '@/hooks/use-settings';
 import { formatCoordinates } from '@/utils/format';
 import { journeySetupParams } from '@/utils/navigation';
 
 const FALLBACK: PinPoint = { latitude: 14.5995, longitude: 120.9842 };
 
-/** Best effort only; a pin name must never block the flow (D17). */
-async function suggestName(latitude: number, longitude: number): Promise<string | null> {
-  try {
-    const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
-    if (!place) return null;
-    const parts = [place.name, place.street, place.district, place.city].filter(
-      (part): part is string => Boolean(part),
-    );
-    return parts.length > 0 ? parts.slice(0, 2).join(', ') : null;
-  } catch {
-    return null;
-  }
-}
-
 export default function PinDestinationScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ intent?: string }>();
   const { settings } = useSettings();
+  // "Add a place" starts here, so saving to Places is the primary action.
+  const saveIntent = params.intent === 'save';
 
   const [mode, setMode] = useState<'map' | 'coordinates'>('map');
   const [center, setCenter] = useState<PinPoint>(FALLBACK);
@@ -46,6 +35,7 @@ export default function PinDestinationScreen() {
   const [latitudeText, setLatitudeText] = useState('');
   const [longitudeText, setLongitudeText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [savingPlace, setSavingPlace] = useState(false);
 
   const applyPoint = (next: PinPoint) => {
     setPoint(next);
@@ -97,15 +87,23 @@ export default function PinDestinationScreen() {
     setMode('map');
   };
 
-  const savePlace = () => {
-    if (!point) return;
-    router.push({
-      pathname: '/place/new',
-      params: {
-        latitude: point.latitude.toFixed(6),
-        longitude: point.longitude.toFixed(6),
-      },
-    });
+  const savePlace = async () => {
+    if (!point || savingPlace) return;
+    setSavingPlace(true);
+    try {
+      // A suggested name means saving is one tap, not typing a coordinate.
+      const suggested = await suggestPlaceName(point.latitude, point.longitude);
+      router.push({
+        pathname: '/place/new',
+        params: {
+          latitude: point.latitude.toFixed(6),
+          longitude: point.longitude.toFixed(6),
+          name: suggested ?? offlinePinLabel(point),
+        },
+      });
+    } finally {
+      setSavingPlace(false);
+    }
   };
 
   const choose = async () => {
@@ -118,7 +116,7 @@ export default function PinDestinationScreen() {
     }
 
     const fallbackLabel = offlinePinLabel({ latitude, longitude });
-    const suggested = await suggestName(latitude, longitude);
+    const suggested = await suggestPlaceName(latitude, longitude);
 
     router.push({
       pathname: '/journey/new',
@@ -204,13 +202,32 @@ export default function PinDestinationScreen() {
         </ThemedText>
       ) : null}
 
-      <AppButton label={strings.destination.usePoint} onPress={() => void choose()} />
-      <AppButton
-        label={strings.destination.savePlace}
-        variant="secondary"
-        onPress={savePlace}
-        disabled={!point}
-      />
+      {saveIntent ? (
+        <>
+          <AppButton
+            label={strings.destination.savePlace}
+            onPress={() => void savePlace()}
+            loading={savingPlace}
+            disabled={!point}
+          />
+          <AppButton
+            label={strings.destination.usePoint}
+            variant="secondary"
+            onPress={() => void choose()}
+          />
+        </>
+      ) : (
+        <>
+          <AppButton label={strings.destination.usePoint} onPress={() => void choose()} />
+          <AppButton
+            label={strings.destination.savePlace}
+            variant="secondary"
+            onPress={() => void savePlace()}
+            loading={savingPlace}
+            disabled={!point}
+          />
+        </>
+      )}
     </Screen>
   );
 }

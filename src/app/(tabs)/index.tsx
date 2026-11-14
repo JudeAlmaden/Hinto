@@ -336,7 +336,7 @@ export default function HomeScreen() {
           <AppButton
             label={strings.places.addPlace}
             variant="secondary"
-            onPress={() => router.push('/place/new')}
+            onPress={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
           />
         </Card>
       ) : (

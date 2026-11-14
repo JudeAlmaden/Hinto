@@ -130,6 +130,25 @@ export default function JourneyOptionsScreen() {
         onValueChange={setEarlier}
       />
 
+      {journey.placeId ? null : (
+        <View>
+          <NavRow
+            label={strings.place.saveDestination}
+            onPress={() =>
+              router.push({
+                pathname: '/place/new',
+                params: {
+                  latitude: journey.destinationLatitude.toFixed(6),
+                  longitude: journey.destinationLongitude.toFixed(6),
+                  name: journey.destinationName,
+                },
+              })
+            }
+            last
+          />
+        </View>
+      )}
+
       <View>
         <NavRow
           label={strings.settings.alarmSound}
