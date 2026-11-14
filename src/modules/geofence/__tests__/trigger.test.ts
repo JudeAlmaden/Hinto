@@ -53,8 +53,14 @@ describe('evaluateTrigger — single stage', () => {
     expect(decision.fireStage).toBeNull();
   });
 
-  it('refuses a poor fix even when the point is well inside', () => {
+  it('fires with a poor fix while its worst case is inside the radius', () => {
+    // 400 m away with ±80 m accuracy is still certainly inside 1000 m.
     const decision = evaluate(sample(400, { accuracy: 80 }));
+    expect(decision.fireStage?.stageIndex).toBe(0);
+  });
+
+  it('refuses when the error bound reaches outside the radius', () => {
+    const decision = evaluate(sample(400, { accuracy: 700 }));
     expect(decision.fireStage).toBeNull();
     expect(decision.accuracyRejected).toBe(true);
   });

@@ -15,18 +15,28 @@ import { currentLocation } from '@/modules/location/service';
 
 export function PlaceForm({
   initial,
+  initialCoordinates,
   onSaved,
 }: {
   initial?: Place;
+  /** Seeds the coordinate fields, e.g. a pin dropped on the map. */
+  initialCoordinates?: { latitude: number; longitude: number };
   onSaved: () => void;
 }) {
   const createPlace = usePlacesStore((state) => state.create);
   const updatePlace = usePlacesStore((state) => state.update);
 
+  const seededLatitude = initial?.latitude ?? initialCoordinates?.latitude;
+  const seededLongitude = initial?.longitude ?? initialCoordinates?.longitude;
+
   const [name, setName] = useState(initial?.name ?? '');
   const [category, setCategory] = useState<PlaceCategory>(initial?.category ?? 'other');
-  const [latitude, setLatitude] = useState(initial ? String(initial.latitude) : '');
-  const [longitude, setLongitude] = useState(initial ? String(initial.longitude) : '');
+  const [latitude, setLatitude] = useState(
+    seededLatitude === undefined ? '' : String(seededLatitude),
+  );
+  const [longitude, setLongitude] = useState(
+    seededLongitude === undefined ? '' : String(seededLongitude),
+  );
   const [radiusM, setRadiusM] = useState(initial?.defaultRadiusM ?? DEFAULT_RADIUS_M);
   const [favourite, setFavourite] = useState(initial?.isFavorite ?? false);
   const [error, setError] = useState<string | null>(null);

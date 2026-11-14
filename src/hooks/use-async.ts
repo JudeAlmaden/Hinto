@@ -58,7 +58,11 @@ export function useAsyncData<T>(loader: () => Promise<T>, key: string): AsyncSta
   }, [requestId]);
 
   const reload = useCallback(() => setNonce((value) => value + 1), []);
-  const current = result?.id === requestId ? result : null;
+
+  // Keep the last settled result for this key while a refresh is in flight.
+  // Without this, every poll made `data` null for a frame and the screen fell
+  // back to its loading state — the periodic flicker on Home and Journey.
+  const current = result && result.id.startsWith(`${key}#`) ? result : null;
 
   return {
     data: current?.data ?? null,

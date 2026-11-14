@@ -97,6 +97,17 @@ export default function PinDestinationScreen() {
     setMode('map');
   };
 
+  const savePlace = () => {
+    if (!point) return;
+    router.push({
+      pathname: '/place/new',
+      params: {
+        latitude: point.latitude.toFixed(6),
+        longitude: point.longitude.toFixed(6),
+      },
+    });
+  };
+
   const choose = async () => {
     const latitude = Number(latitudeText.trim());
     const longitude = Number(longitudeText.trim());
@@ -194,6 +205,12 @@ export default function PinDestinationScreen() {
       ) : null}
 
       <AppButton label={strings.destination.usePoint} onPress={() => void choose()} />
+      <AppButton
+        label={strings.destination.savePlace}
+        variant="secondary"
+        onPress={savePlace}
+        disabled={!point}
+      />
     </Screen>
   );
 }

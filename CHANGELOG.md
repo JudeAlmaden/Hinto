@@ -5,6 +5,36 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-14
+
+### Added
+- "Save this place" on the pin picker: opens the place form with the dropped
+  point already in the coordinate fields, so a pin can be kept and reused.
+
+### Fixed
+- The 5-second refresh no longer blanks Home and Journey to a loading state on
+  every poll; the last settled data stays on screen while a refresh is in
+  flight, which was the visible flicker.
+- Alerting no longer requires a fix better than 50 m: firing needs only the
+  worst-case position (`distance + accuracy`) inside the radius, so a phone
+  reporting ±100 m can still alert 120 m from a 5 km stop. The 50 m cap remains
+  for overshoot estimates (D14 amended).
+- The EAS prebuild failure: Android resource names reject hyphens, so the
+  bundled sounds are `alarm_classic.wav`, `alarm_chime.wav` and
+  `alarm_beep.wav`, with the config plugin, channel sound and asset generator
+  updated to match.
+- "last seen 54s ago ago" is now "Last seen 54s ago".
+
+### Changed
+- `npm run android` / `npm run ios` now run `expo run:*`, so they open the
+  development build instead of Expo Go.
+
+### Technical
+- `app.config.ts`: the new EAS project id linked by `eas init`.
+- Assets: renamed `assets/sounds/alarm_{classic,chime,beep}.wav`; the old names
+  blocked `expo prebuild` with "Resource name is not valid".
+- Tests: 132 passing; lint and typecheck clean.
+
 ## [0.2.0] - 2026-11-14
 
 ### Added

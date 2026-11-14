@@ -45,8 +45,14 @@ describe('accuracy gate (D14)', () => {
     expect(isConfidentlyInside(400, 20, radius)).toBe(true);
   });
 
-  it('refuses a poor fix even when the point is close', () => {
-    expect(isConfidentlyInside(400, ACCURACY_TRUST_M + 1, radius)).toBe(false);
+  it('accepts an imprecise fix while the worst case is still inside', () => {
+    // A 100 m Android fix 120 m from a 5 km stop is certainly inside it.
+    expect(isConfidentlyInside(400, ACCURACY_TRUST_M + 1, radius)).toBe(true);
+    expect(isConfidentlyInside(120, 100, 5000)).toBe(true);
+  });
+
+  it('refuses once the error bound reaches the radius', () => {
+    expect(isConfidentlyInside(400, 650, radius)).toBe(false);
   });
 
   it('refuses when accuracy pushes the bound outside the radius', () => {

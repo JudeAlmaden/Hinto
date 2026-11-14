@@ -13,7 +13,11 @@ export const DEFAULT_RADIUS_M = 1000;
 export const MIN_RADIUS_M = 100;
 export const MAX_RADIUS_M = 20_000;
 
-/** A fix is only trustworthy for triggering at or below this accuracy (D14). */
+/**
+ * A fix must be this accurate to be used for an overshoot (segment-crossing)
+ * estimate (D14). Normal triggering only needs the worst case to be inside the
+ * radius, so a 100 m urban fix can still alert from 5 km away.
+ */
 export const ACCURACY_TRUST_M = 50;
 
 /**
@@ -40,7 +44,11 @@ export function isSampleTrustworthy(sampleTimestamp: number, now: number, timeIn
   return now - sampleTimestamp <= maxAge;
 }
 
-/** "Confidently inside": good enough accuracy, and even the error bound is inside the radius. */
+/**
+ * "Confidently inside": even the worst-case position (distance + accuracy) is
+ * inside the radius. Capping accuracy outright would silently disable alerts on
+ * phones reporting 100 m fixes, which is common indoors and in cities.
+ */
 export function isConfidentlyInside(distanceM: number, accuracyM: number, radiusM: number): boolean {
-  return accuracyM <= ACCURACY_TRUST_M && distanceM + accuracyM <= radiusM;
+  return distanceM + accuracyM <= radiusM;
 }

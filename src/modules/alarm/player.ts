@@ -17,9 +17,9 @@ import { capture } from '@/modules/diagnostics';
 import type { AlarmSoundId } from '.';
 
 const SOURCES: Record<AlarmSoundId, number> = {
-  classic: require('@/assets/sounds/alarm-classic.wav'),
-  chime: require('@/assets/sounds/alarm-chime.wav'),
-  beep: require('@/assets/sounds/alarm-beep.wav'),
+  classic: require('@/assets/sounds/alarm_classic.wav'),
+  chime: require('@/assets/sounds/alarm_chime.wav'),
+  beep: require('@/assets/sounds/alarm_beep.wav'),
 };
 
 let player: AudioPlayer | null = null;

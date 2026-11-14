@@ -298,10 +298,15 @@ The geofence, the watchdog and the UI must not each invent a timeout.
 - **Waiting for a fix** after **60 s** with no new sample (grey status); **stale** warning at **3 min** (amber, on Home and the journey card); the journey becomes `interrupted` after **10 min** without samples, or immediately on a boot / unclean-exit signal (D2).
 - Between 60 s and 10 min nothing may claim "tracking": `last_known_distance_m` keeps the last trustworthy value and the UI shows its age next to it.
 - All three numbers live in one exported constants object beside the policy table, and D7's gap threshold derives from the same `timeInterval` basis, so tuning the policy cannot desynchronise the warning states.
-- **Accuracy gate:** a fix counts as trustworthy for triggering only when
-  `accuracy ≤ ACCURACY_TRUST_M` (**50 m**) and `distance + accuracy ≤ radius` —
-  "confidently inside". A poor fix keeps the journey tracking but never fires an
-  alert, and never counts as the `entered_radius_at` sample (D9).
+- **Accuracy gate:** a fix fires only when `distance + accuracy ≤ radius` —
+  "confidently inside", i.e. even the worst-case position is inside. A poor fix
+  keeps the journey tracking but never fires an alert, and never counts as the
+  `entered_radius_at` sample (D9).
+- **Amended 2026-11-14:** the original rule also required `accuracy ≤ 50 m`,
+  which on a phone reporting ±100 m disabled the alarm entirely, even 120 m from
+  a 5 km stop. The absolute cap now applies only to overshoot estimates, where a
+  noisy fix could invent a segment crossing; `ACCURACY_TRUST_M` documents it.
+  Alerting still requires the error bound to sit inside the radius.
 
 ### D15 — Online place search: Photon behind one interface, fail-soft
 

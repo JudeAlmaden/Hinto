@@ -40,7 +40,7 @@ export async function ensureNotificationChannels(): Promise<void> {
       name: 'Alarm',
       description: 'The audible alert before your stop.',
       importance: AndroidImportance.MAX,
-      sound: 'alarm-classic.wav',
+      sound: 'alarm_classic.wav',
       enableVibrate: true,
       vibrationPattern: [0, 600, 400, 600, 400, 600],
       bypassDnd: true,
@@ -72,5 +72,6 @@ export async function ensureChannelsOnce(): Promise<void> {
 
 /** Base filename of the bundled alarm sound, as Android expects it. */
 export function soundFileName(sound: 'classic' | 'chime' | 'beep'): string {
-  return `alarm-${sound}.wav`;
+  // Android resource names reject hyphens, so the bundled files use `_`.
+  return `alarm_${sound}.wav`;
 }

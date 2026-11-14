@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.2.0',
+  version: '0.2.1',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',
@@ -76,9 +76,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         color: '#208AEF',
         defaultChannel: 'journey-v1',
         sounds: [
-          './assets/sounds/alarm-classic.wav',
-          './assets/sounds/alarm-chime.wav',
-          './assets/sounds/alarm-beep.wav',
+          // Android resource names allow only lowercase letters, digits and
+          // underscores, so the bundled sounds must not use hyphens.
+          './assets/sounds/alarm_classic.wav',
+          './assets/sounds/alarm_chime.wav',
+          './assets/sounds/alarm_beep.wav',
         ],
       },
     ],
@@ -89,13 +91,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     ...config.extra,
+    eas: {
+      projectId: 'b5a96491-cc92-477a-97cd-f7263e5a687b',
+    },
     router: {
       asyncRoutes: {
         web: true,
       },
-    },
-    eas: {
-      projectId: '3c4796ed-ae8c-418a-95bf-ed92a252a0a2',
     },
   },
   owner: 'judealmadens-team',

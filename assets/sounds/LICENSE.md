@@ -5,9 +5,9 @@ code by `scripts/generate-assets.mjs` (`npm run assets:generate`):
 
 | File | Character | Length |
 | --- | --- | --- |
-| `alarm-classic.wav` | Alternating 880/660 Hz two-tone | 2.0 s |
-| `alarm-chime.wav` | Decaying C6–E6–G6 triad | 2.4 s |
-| `alarm-beep.wav` | 1 kHz pulses | 2.0 s |
+| `alarm_classic.wav` | Alternating 880/660 Hz two-tone | 2.0 s |
+| `alarm_chime.wav` | Decaying C6–E6–G6 triad | 2.4 s |
+| `alarm_beep.wav` | 1 kHz pulses | 2.0 s |
 
 - Generated locally from sine waves; no third-party recording, no licence
   obligations. Dedicated to the public domain (CC0) as far as applicable.

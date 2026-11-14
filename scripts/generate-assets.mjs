@@ -295,6 +295,7 @@ function makeBeep() {
   return fade(normalise(Array.from(buffer)));
 }
 
-write('assets/sounds/alarm-classic.wav', encodeWav(makeClassic()));
-write('assets/sounds/alarm-chime.wav', encodeWav(makeChime()));
-write('assets/sounds/alarm-beep.wav', encodeWav(makeBeep()));
+// Android resource names allow only lowercase letters, digits and underscores.
+write('assets/sounds/alarm_classic.wav', encodeWav(makeClassic()));
+write('assets/sounds/alarm_chime.wav', encodeWav(makeChime()));
+write('assets/sounds/alarm_beep.wav', encodeWav(makeBeep()));
