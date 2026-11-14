@@ -93,6 +93,10 @@ instead of inheriting it from `expo-notifications`.
 
 ### D3 — Maps: `expo-maps` with the Google provider, key from the environment
 
+> **Superseded by D19.** A Google key needs a billing-enabled Cloud project and
+> `expo-maps` is absent from Expo Go, so the picker was blocked for anyone
+> without a Google account.
+
 - The pin picker is the only map surface. It uses `GoogleMaps.View` from
 `expo-maps` (Android-only for Google Maps); tapping the map emits coordinates
 (`onMapClick`), which place the marker, and `Use this point` confirms.
@@ -362,8 +366,32 @@ nothing on the run path performs a network request.** Concretely:
   recommends exactly this (§18) and treats maps as optional presentation (§5).
 - A destination chosen while online keeps working forever afterwards; a
   destination chosen while offline is entered as coordinates or picked from
-  saved places. The pin picker without tiles shows the D3 fallback.
+  saved places. The pin picker without tiles shows the D19 fallback.
 - Closes spec §18 questions 2–3 (and section 5's map strategy) for the MVP.
+
+### D19 — Maps: MapLibre Native with keyless OpenStreetMap raster tiles
+
+- The pin picker uses `@maplibre/maplibre-react-native` (v11) inside the app:
+  `Map` with an empty style, one `RasterSource` pointing at
+  `https://tile.openstreetmap.org/{z}/{x}/{y}.png` (`tileSize` 256), and a
+  `Layer type="raster"`. No provider key, no Google billing, no WebView.
+- Tapping the map reads `event.nativeEvent.lngLat` and places a
+  `ViewAnnotation` marker; the screen keeps the coordinates, name and
+  confirmation flow it already had.
+- Attribution stays visible without interaction (`© OpenStreetMap
+  contributors` overlay) and the source also carries the attribution string,
+  as the OSM tile policy requires. The tile URL is one constant in
+  `src/modules/maps/index.ts` so it can be swapped for a paid or self-hosted
+  provider before a store release; the public OSM tile server is for light use.
+- MapLibre contains native code and is not in Expo Go: the app must run from a
+  development build (`npx expo run:android` or the `development` EAS profile).
+  That build is required anyway for background location and background audio.
+- Tiles are online with the platform HTTP cache; no tile packs or prefetching,
+  so D18 still holds and a chosen destination stays self-contained. Manual
+  coordinate entry remains the fallback when the map or the network fails.
+- Rejected: `expo-maps` (key and billing), `react-native-maps` (Google key on
+  Android), Leaflet in a WebView (works keyless but is not a native map and
+  halves the performance of pan/zoom).
 
 ---
 
@@ -377,7 +405,8 @@ Work:
 1. Install SDK-compatible dependencies with `npx expo install` (never a bare
    `npm install` for Expo packages):
    - `expo-location`, `expo-task-manager`, `expo-notifications`,
-     `expo-sqlite`, `expo-haptics`, `expo-audio`, `expo-maps` (D3),
+     `expo-sqlite`, `expo-haptics`, `expo-audio`,
+     `@maplibre/maplibre-react-native` (D19), `expo-dev-client` (D19 builds),
      `expo-battery`, `expo-device`, `expo-constants`, `expo-intent-launcher`
      (Android settings deep links), `@react-native-community/netinfo`.
    - `zustand`, `zod` (validation for form input and persisted rows).
@@ -514,11 +543,10 @@ Work:
 2. Offline degradation: with no connectivity, hide search and surface saved
    places + recent destinations + a clear explanation (spec §4.2).
 3. Coordinate entry as an advanced/debug option only.
-4. Map pin selection per **D3**: `GoogleMaps.View` from `expo-maps`, tap to
-   place the marker (`onMapClick`), `Use this point` to confirm. Key from env;
-   with no key the picker shows coordinate entry and a note. The picker is a
-   leaf screen — if tiles fail, saved places and coordinates still work, and
-   MapLibre offline tiles stay post-MVP (spec §5, §18).
+4. Map pin selection per **D19**: MapLibre `Map` with keyless OSM raster
+   tiles, tap to place a `ViewAnnotation` pin, `Use this point` to confirm.
+   If tiles fail, saved places and coordinates still work, and offline tile
+   packs stay post-MVP (spec §5, §18).
 5. Confirmation step showing destination name and coordinates before journey
    start.
 6. Offline naming per **D17**: selecting a search result or pinning a point
@@ -883,11 +911,10 @@ found and why the design changed.
    only restores scheduled notifications). D2 closes it by implementing
    recovery explicitly — record the interruption, then prompt — instead of
    promising an automatic restart.
-3. **Map provider and key were undecided** (Phase 3) — **resolved in D3**
-   (`expo-maps` Google provider, key from env). The plan had said
-   "`react-native-maps`/`expo-maps`"; they differ in setup, and Android needs
-   a Google Maps API key in app config plus an EAS secret — left as a
-   two-option bullet, the pin picker would have stalled.
+3. **Map provider and key were undecided** (Phase 3) — **resolved keyless in
+   D19** (MapLibre Native + OpenStreetMap raster tiles). D3's Google provider
+   needed a billing-enabled key and is absent from Expo Go, so it is
+   superseded.
 4. **Prevent accidental dismissal had no defined interaction** (Phase 6) —
    **resolved in D4** (hold-to-confirm to end, tap to snooze, confirm to
    silence). Settings copy must name the hold gesture.

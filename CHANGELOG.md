@@ -5,6 +5,34 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-14
+
+### Added
+- Native, keyless pin picker: MapLibre Native renders OpenStreetMap raster
+  tiles, tapping the map drops a `ViewAnnotation` pin, and "Center on me"
+  recentres the camera. No API key, no billing account.
+
+### Changed
+- The map no longer needs Google Maps: `expo-maps`, its config plugin, the
+  Android manifest key and the `googleMapsApiKeyConfigured` flag were removed.
+- The picker runs on `@maplibre/maplibre-react-native`, which requires a
+  development build (`npx expo run:android` or the `development` EAS profile);
+  Expo Go cannot load it.
+- `expo-dev-client` is installed so the `development` profile in `eas.json`
+  and a local development build work.
+
+### Removed
+- `react-native-webview` (the interim Leaflet picker) and the WebView map
+  builder it needed.
+
+### Technical
+- New: `src/components/pin-map.tsx`; `src/modules/maps/index.ts` now exports
+  the OSM tile URL and attribution used by the picker.
+- Dependencies: added `@maplibre/maplibre-react-native` and `expo-dev-client`;
+  removed `expo-maps` and `react-native-webview`.
+- Tests: 130 passing across 14 suites; lint, typecheck and the Android export
+  are clean. The map itself cannot be rendered without a development build.
+
 ## [0.1.0] - 2026-11-13
 
 ### Added

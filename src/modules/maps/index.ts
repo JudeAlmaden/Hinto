@@ -1,6 +1,10 @@
 /**
- * Maps — pin picker only (plan D3, D18). The journey screen never renders a map.
+ * Maps — pin picker only (plan D3, D18, D19). The journey screen never renders
+ * a map; MapLibre draws free OpenStreetMap raster tiles, so no key is needed.
  */
+
+export const PIN_MAP_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const PIN_MAP_ATTRIBUTION = '© OpenStreetMap contributors';
 
 export interface PinPoint {
   latitude: number;

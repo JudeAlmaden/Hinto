@@ -1,7 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY ?? '';
-
 /**
  * Android-only MVP (plan D16). iOS values are kept so the config stays valid
  * but are unvalidated — no iOS build or device test is in scope.
@@ -13,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.1.0',
+  version: '0.2.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',
@@ -30,13 +28,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
-    config: {
-      // Required by expo-maps GoogleMaps.View (plan D3). Empty when the secret
-      // is not configured; the pin picker then falls back to coordinate entry.
-      googleMaps: {
-        apiKey: GOOGLE_MAPS_API_KEY,
-      },
-    },
   },
   web: {
     output: 'server',
@@ -44,6 +35,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    // MapLibre Native for the keyless OpenStreetMap pin picker (plan D19).
+    // Requires a development build; it is not part of Expo Go.
+    '@maplibre/maplibre-react-native',
     [
       'expo-splash-screen',
       {
@@ -88,12 +82,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         ],
       },
     ],
-    [
-      'expo-maps',
-      {
-        requestLocationPermission: true,
-      },
-    ],
   ],
   experiments: {
     typedRoutes: true,
@@ -101,9 +89,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     ...config.extra,
-    // The pin picker reads this flag (never the key itself) to decide between
-    // the map and coordinate entry (plan D3).
-    googleMapsApiKeyConfigured: GOOGLE_MAPS_API_KEY.length > 0,
     router: {
       asyncRoutes: {
         web: true,
