@@ -29,7 +29,7 @@ export default function AlarmTestOnboardingScreen() {
       return;
     }
 
-    startAlarmLoop(settings.alarm_sound_id, false);
+    startAlarmLoop(settings.alarm_sound_id, false, settings.custom_alarm_uri);
     setPlaying(true);
     timer.current = setTimeout(() => {
       stopAlarmLoop();

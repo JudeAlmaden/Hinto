@@ -5,6 +5,23 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-14
+
+### Added
+- Alarm sound from the phone: Settings → Alarm sound can pick any audio file,
+  which is copied into Hinto's storage and played by the alarm loop, previews,
+  snooze and "wake now", with replace and remove. The notification channel keeps
+  the bundled classic sound because Android channels only accept bundled
+  resources, and a missing file falls back to classic.
+
+### Technical
+- New: `src/modules/alarm/custom-sound.ts` (system picker, copy into
+  `documentDirectory/alarm-sounds`, delete).
+- Settings key `custom_alarm_uri` (`string | null`, default null) and
+  `AlarmSoundId` gains `custom`; the alarm request carries the URI through
+  delivery, snooze and wake-now.
+- Tests: 143 passing across 17 suites — lint and typecheck clean.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added

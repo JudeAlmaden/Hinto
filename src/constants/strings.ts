@@ -270,8 +270,16 @@ export const strings = {
     classic: 'Classic alarm',
     chime: 'Soft chime',
     beep: 'Double beep',
+    custom: 'From this phone',
     preview: 'Tap to preview',
-    note: 'Only the bundled sounds are available. They never need a download.',
+    note: 'Bundled sounds never need a download.',
+    customEmpty: 'No audio file chosen yet.',
+    choose: 'Choose an audio file',
+    replace: 'Choose a different file',
+    remove: 'Remove custom sound',
+    customNote:
+      'Hinto copies the file into its own storage, so it keeps working if you delete the original.',
+    customFailed: 'That file could not be used. Try another audio file.',
   },
 
   permissions: {

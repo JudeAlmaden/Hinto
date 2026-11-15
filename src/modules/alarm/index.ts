@@ -5,8 +5,9 @@
  * path, and looping audio is layered on top.
  */
 
-export type AlarmSoundId = 'classic' | 'chime' | 'beep';
+export type AlarmSoundId = 'classic' | 'chime' | 'beep' | 'custom';
 
+/** Bundled sounds; `custom` plays whatever the user picked from the phone. */
 export const ALARM_SOUNDS: readonly AlarmSoundId[] = ['classic', 'chime', 'beep'] as const;
 
 /** Channel ids are versioned because Android applies channel settings only at creation. */
@@ -23,6 +24,8 @@ export interface AlarmRequest {
   destinationName: string;
   distanceM: number;
   sound: AlarmSoundId;
+  /** Local file URI for `sound: 'custom'`; ignored otherwise. */
+  customSoundUri?: string | null;
   snoozeMinutes: number;
   vibration: boolean;
   repeatUntilDismissed: boolean;

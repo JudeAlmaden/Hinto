@@ -37,7 +37,7 @@ export default function AlarmTestScreen() {
 
   const play = async () => {
     await configureAlarmAudio();
-    startAlarmLoop(settings.alarm_sound_id, false);
+    startAlarmLoop(settings.alarm_sound_id, false, settings.custom_alarm_uri);
     setPlaying(true);
 
     try {

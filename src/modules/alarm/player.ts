@@ -9,18 +9,24 @@
  * having been posted.
  */
 
-import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer, type AudioSource } from 'expo-audio';
 
 import { ALARM_LOOP_CEILING_MS } from '@/constants/alarms';
 import { capture } from '@/modules/diagnostics';
 
 import type { AlarmSoundId } from '.';
 
-const SOURCES: Record<AlarmSoundId, number> = {
+const SOURCES: Record<'classic' | 'chime' | 'beep', number> = {
   classic: require('@/assets/sounds/alarm_classic.wav'),
   chime: require('@/assets/sounds/alarm_chime.wav'),
   beep: require('@/assets/sounds/alarm_beep.wav'),
 };
+
+/** A missing custom file falls back to the bundled classic alarm. */
+function sourceFor(sound: AlarmSoundId, customUri?: string | null): AudioSource {
+  if (sound === 'custom' && customUri) return { uri: customUri };
+  return SOURCES[sound === 'custom' ? 'classic' : sound];
+}
 
 let player: AudioPlayer | null = null;
 let ceilingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -49,11 +55,15 @@ function clearCeiling(): void {
   }
 }
 
-export function startAlarmLoop(sound: AlarmSoundId, repeatUntilDismissed: boolean): void {
+export function startAlarmLoop(
+  sound: AlarmSoundId,
+  repeatUntilDismissed: boolean,
+  customUri?: string | null,
+): void {
   stopAlarmLoop();
 
   try {
-    player = createAudioPlayer(SOURCES[sound] ?? SOURCES.classic);
+    player = createAudioPlayer(sourceFor(sound, customUri));
     player.loop = repeatUntilDismissed;
     player.volume = 1;
     try {

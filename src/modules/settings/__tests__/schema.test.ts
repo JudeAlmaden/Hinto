@@ -13,6 +13,7 @@ describe('settings defaults (D5)', () => {
     expect(DEFAULT_SETTINGS).toEqual({
       default_radius_m: 1000,
       alarm_sound_id: 'classic',
+      custom_alarm_uri: null,
       vibration_enabled: true,
       repeat_until_dismissed: true,
       snooze_minutes: 5,
@@ -30,6 +31,16 @@ describe('settings defaults (D5)', () => {
 });
 
 describe('parseSettings (D5)', () => {
+  it('accepts a custom alarm sound and its file', () => {
+    const { settings, invalid } = parseSettings({
+      alarm_sound_id: 'custom',
+      custom_alarm_uri: 'file:///data/alarm-sounds/alarm-1.m4a',
+    });
+    expect(settings.alarm_sound_id).toBe('custom');
+    expect(settings.custom_alarm_uri).toBe('file:///data/alarm-sounds/alarm-1.m4a');
+    expect(invalid).toEqual([]);
+  });
+
   it('returns defaults for an empty record', () => {
     const { settings, invalid } = parseSettings({});
     expect(settings).toEqual(DEFAULT_SETTINGS);

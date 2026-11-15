@@ -66,7 +66,7 @@ export async function deliverAlarm(request: AlarmRequest): Promise<void> {
   await postAlarmNotification(request);
 
   await configureAlarmAudio();
-  startAlarmLoop(request.sound, request.repeatUntilDismissed);
+  startAlarmLoop(request.sound, request.repeatUntilDismissed, request.customSoundUri);
 
   if (request.vibration) await vibrate();
 
@@ -125,7 +125,7 @@ export async function wakeNow(): Promise<void> {
   emit();
 
   await configureAlarmAudio();
-  startAlarmLoop(request.sound, request.repeatUntilDismissed);
+  startAlarmLoop(request.sound, request.repeatUntilDismissed, request.customSoundUri);
   if (request.vibration) await vibrate();
 }
 

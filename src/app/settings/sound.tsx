@@ -2,20 +2,31 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Card } from '@/components/ui/controls';
+import { AppButton, Card, SectionLabel } from '@/components/ui/controls';
 import { Screen } from '@/components/ui/screen';
 import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import { useSettings } from '@/hooks/use-settings';
+import { useTheme } from '@/hooks/use-theme';
 import { ALARM_SOUNDS, type AlarmSoundId } from '@/modules/alarm';
+import {
+  customSoundFileName,
+  deleteCustomAlarmSound,
+  pickCustomAlarmSound,
+} from '@/modules/alarm/custom-sound';
 import { configureAlarmAudio, startAlarmLoop, stopAlarmLoop } from '@/modules/alarm/player';
 
 const PREVIEW_MS = 4000;
 
 export default function AlarmSoundScreen() {
+  const theme = useTheme();
   const { settings, update } = useSettings();
   const [playing, setPlaying] = useState<AlarmSoundId | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const customUri = settings.custom_alarm_uri;
 
   useEffect(() => {
     void configureAlarmAudio();
@@ -25,16 +36,47 @@ export default function AlarmSoundScreen() {
     };
   }, []);
 
-  const preview = (sound: AlarmSoundId) => {
+  const play = (sound: AlarmSoundId, uri: string | null = customUri) => {
     if (timer.current) clearTimeout(timer.current);
     stopAlarmLoop();
-    startAlarmLoop(sound, false);
+    startAlarmLoop(sound, false, uri);
     setPlaying(sound);
     timer.current = setTimeout(() => {
       stopAlarmLoop();
       setPlaying(null);
     }, PREVIEW_MS);
   };
+
+  const choose = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const uri = await pickCustomAlarmSound();
+      if (!uri) return;
+
+      const previous = customUri;
+      await update({ custom_alarm_uri: uri, alarm_sound_id: 'custom' });
+      if (previous) deleteCustomAlarmSound(previous);
+      play('custom', uri);
+    } catch {
+      setError(strings.sound.customFailed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (timer.current) clearTimeout(timer.current);
+    stopAlarmLoop();
+    setPlaying(null);
+    deleteCustomAlarmSound(customUri);
+    await update({
+      custom_alarm_uri: null,
+      alarm_sound_id: settings.alarm_sound_id === 'custom' ? 'classic' : settings.alarm_sound_id,
+    });
+  };
+
+  const customName = customSoundFileName(customUri);
 
   return (
     <Screen title={strings.sound.title} back>
@@ -44,7 +86,7 @@ export default function AlarmSoundScreen() {
             key={sound}
             onPress={() => {
               void update({ alarm_sound_id: sound });
-              preview(sound);
+              play(sound);
             }}
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
             <View style={styles.text}>
@@ -53,16 +95,67 @@ export default function AlarmSoundScreen() {
                 {playing === sound ? strings.alarmTest.playing : strings.sound.preview}
               </ThemedText>
             </View>
-            <ThemedText style={styles.check}>
+            <ThemedText style={[styles.check, { color: theme.accent }]}>
               {settings.alarm_sound_id === sound ? '✓' : ''}
             </ThemedText>
           </Pressable>
         ))}
       </View>
 
+      <SectionLabel>{strings.sound.custom}</SectionLabel>
+
+      {customUri ? (
+        <Pressable
+          onPress={() => {
+            void update({ alarm_sound_id: 'custom' });
+            play('custom');
+          }}
+          style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
+          <View style={styles.text}>
+            <ThemedText style={styles.name} numberOfLines={1}>
+              {customName ?? strings.sound.custom}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {playing === 'custom' ? strings.alarmTest.playing : strings.sound.preview}
+            </ThemedText>
+          </View>
+          <ThemedText style={[styles.check, { color: theme.accent }]}>
+            {settings.alarm_sound_id === 'custom' ? '✓' : ''}
+          </ThemedText>
+        </Pressable>
+      ) : (
+        <ThemedText type="small" themeColor="textSecondary">
+          {strings.sound.customEmpty}
+        </ThemedText>
+      )}
+
+      <AppButton
+        label={customUri ? strings.sound.replace : strings.sound.choose}
+        variant="secondary"
+        onPress={() => void choose()}
+        loading={busy}
+      />
+
+      {customUri ? (
+        <AppButton
+          label={strings.sound.remove}
+          variant="ghost"
+          onPress={() => void remove()}
+        />
+      ) : null}
+
+      {error ? (
+        <ThemedText type="small" style={{ color: theme.danger }}>
+          {error}
+        </ThemedText>
+      ) : null}
+
       <Card style={styles.note}>
         <ThemedText type="small" themeColor="textSecondary">
           {strings.sound.note}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {strings.sound.customNote}
         </ThemedText>
       </Card>
     </Screen>
@@ -88,11 +181,11 @@ const styles = StyleSheet.create({
   },
   check: {
     fontSize: 18,
-    color: '#208AEF',
     width: 22,
     textAlign: 'center',
   },
   note: {
     paddingVertical: Spacing.three,
+    gap: Spacing.one,
   },
 });

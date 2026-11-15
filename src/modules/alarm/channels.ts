@@ -16,7 +16,7 @@ import { Platform } from 'react-native';
 
 import { capture } from '@/modules/diagnostics';
 
-import { NOTIFICATION_CHANNELS } from '.';
+import { NOTIFICATION_CHANNELS, type AlarmSoundId } from '.';
 
 export const ALARM_CHANNEL_ID = NOTIFICATION_CHANNELS.alarm;
 export const JOURNEY_CHANNEL_ID = NOTIFICATION_CHANNELS.journey;
@@ -70,8 +70,12 @@ export async function ensureChannelsOnce(): Promise<void> {
   await ensureNotificationChannels();
 }
 
-/** Base filename of the bundled alarm sound, as Android expects it. */
-export function soundFileName(sound: 'classic' | 'chime' | 'beep'): string {
+/**
+ * Base filename of the notification's alarm sound, as Android expects it.
+ * Channels can only use bundled resources, so a custom sound falls back to the
+ * classic one for the notification; the loop plays the custom file.
+ */
+export function soundFileName(sound: AlarmSoundId): string {
   // Android resource names reject hyphens, so the bundled files use `_`.
-  return `alarm_${sound}.wav`;
+  return `alarm_${sound === 'custom' ? 'classic' : sound}.wav`;
 }
