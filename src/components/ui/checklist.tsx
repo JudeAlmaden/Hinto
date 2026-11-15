@@ -2,6 +2,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/controls';
+import { Icon } from '@/components/ui/icon';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -27,7 +28,12 @@ export function ReadinessChecklist({ items }: { items: ChecklistItem[] }) {
             : item.state === 'warning'
               ? theme.warning
               : theme.danger;
-        const glyph = item.state === 'ok' ? '✓' : item.state === 'warning' ? '!' : '✕';
+        const glyph =
+          item.state === 'ok'
+            ? ('checkmark' as const)
+            : item.state === 'warning'
+              ? ('alert' as const)
+              : ('close' as const);
 
         return (
           <Pressable
@@ -41,14 +47,12 @@ export function ReadinessChecklist({ items }: { items: ChecklistItem[] }) {
                 borderBottomWidth: StyleSheet.hairlineWidth,
               },
             ]}>
-            <ThemedText style={[styles.glyph, { color }]}>{glyph}</ThemedText>
+            <Icon name={glyph} size={18} color={color} />
             <ThemedText type="small" style={styles.label}>
               {item.label}
             </ThemedText>
             {item.onPress ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                ›
-              </ThemedText>
+              <Icon name="chevron-forward" size={16} themeColor="textSecondary" />
             ) : null}
           </Pressable>
         );

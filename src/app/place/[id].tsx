@@ -1,11 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { PlaceForm } from '@/components/place-form';
-import { AppButton, Card } from '@/components/ui/controls';
+import { Card } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
+import { MoreMenu } from '@/components/ui/more-menu';
 import { Screen } from '@/components/ui/screen';
 import { formatCopy, strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
@@ -21,7 +22,6 @@ export default function PlaceDetailScreen() {
   const places = usePlacesStore((state) => state.places);
   const load = usePlacesStore((state) => state.load);
   const remove = usePlacesStore((state) => state.remove);
-  const duplicate = usePlacesStore((state) => state.duplicate);
 
   const place = places.find((candidate) => candidate.id === id) ?? null;
 
@@ -54,43 +54,39 @@ export default function PlaceDetailScreen() {
     });
   };
 
+  const confirmDelete = () =>
+    confirmAction({
+      title: formatCopy(strings.place.deleteTitle, { name: place.name }),
+      body: strings.place.deleteBody,
+      confirmLabel: strings.place.delete,
+      destructive: true,
+      onConfirm: () => {
+        void remove(place.id).then(() => router.back());
+      },
+    });
+
   return (
-    <Screen title={strings.place.editTitle} back>
+    <Screen
+      title={strings.place.editTitle}
+      back
+      right={
+        <MoreMenu
+          items={[
+            { label: strings.place.delete, icon: 'trash-outline', destructive: true, onPress: confirmDelete },
+          ]}
+        />
+      }>
       {justSaved ? (
         <Card style={styles.savedBanner}>
           <ThemedText type="smallBold">{strings.place.savedBanner}</ThemedText>
         </Card>
       ) : null}
 
-      <PlaceForm initial={place} onSaved={() => router.back()} />
-
-      <View style={styles.actions}>
-        <AppButton label={strings.places.startJourney} onPress={startJourney} />
-        <AppButton
-          label={strings.places.duplicate}
-          variant="secondary"
-          onPress={() => {
-            void duplicate(place.id).then((copy) => {
-              if (copy) router.replace(`/place/${copy.id}`);
-            });
-          }}
-        />
-        <AppButton
-          label={strings.place.delete}
-          variant="ghost"
-          onPress={() =>
-            confirmAction({
-              title: formatCopy(strings.place.deleteTitle, { name: place.name }),
-              body: strings.place.deleteBody,
-              confirmLabel: strings.place.delete,
-              destructive: true,
-              onConfirm: () => {
-                void remove(place.id).then(() => router.back());
-              },
-            })
-          }
-        />
-      </View>
+      <PlaceForm
+        initial={place}
+        onSaved={() => router.back()}
+        secondaryAction={{ label: strings.places.startJourney, onPress: startJourney }}
+      />
     </Screen>
   );
 }
@@ -98,9 +94,5 @@ export default function PlaceDetailScreen() {
 const styles = StyleSheet.create({
   savedBanner: {
     paddingVertical: Spacing.three,
-  },
-  actions: {
-    gap: Spacing.two,
-    paddingTop: Spacing.two,
   },
 });

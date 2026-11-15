@@ -1,8 +1,17 @@
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRootNavigationState, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, useColorScheme } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -19,6 +28,8 @@ import {
 } from '@/modules/alarm/notifications';
 import { markSessionStart } from '@/modules/diagnostics';
 import { bootstrapJourneySession } from '@/modules/location/session';
+import { useResolvedScheme } from '@/hooks/use-appearance';
+import { useAppearance } from '@/modules/settings/appearance';
 import { getSettings } from '@/modules/settings/repository';
 // Defines the background location task at module scope (SDK 58 requirement).
 import '@/modules/location/task';
@@ -41,10 +52,17 @@ function WebNotice() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useResolvedScheme();
   const router = useRouter();
   const navigationState = useRootNavigationState();
   const navigationKey = navigationState?.key;
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
 
   useEffect(() => {
     markSessionStart();
@@ -83,6 +101,7 @@ export default function RootLayout() {
         await openDatabase();
         await ensureNotificationChannels();
         const settings = await getSettings(await getDatabase());
+        useAppearance.getState().setPreference(settings.appearance);
         // Recovery is honest: an interrupted journey is reported, not resumed (D2).
         await bootstrapJourneySession();
 
@@ -99,6 +118,10 @@ export default function RootLayout() {
     };
   }, [navigationKey, router]);
 
+  // Keep the native splash up until the type is ready; a missing font must
+  // never block the app, so an error falls through to the system face.
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <ErrorBoundary>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -106,6 +129,7 @@ export default function RootLayout() {
           <WebNotice />
         ) : (
           <>
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <AnimatedSplashOverlay />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />

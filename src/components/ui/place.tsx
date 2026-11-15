@@ -2,11 +2,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Icon } from '@/components/ui/icon';
 import { formatCopy, strings } from '@/constants/strings';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Place, PlaceCategory } from '@/modules/places';
-import { defaultIconFor } from '@/modules/places/icons';
+import { resolvePlaceIcon } from '@/modules/places/icons';
 import { formatDistance } from '@/utils/format';
 
 export function PlaceIcon({
@@ -33,7 +34,11 @@ export function PlaceIcon({
           backgroundColor: color ?? theme.backgroundSelected,
         },
       ]}>
-      <ThemedText style={{ fontSize: size * 0.46 }}>{icon ?? defaultIconFor(category)}</ThemedText>
+      <Icon
+        name={resolvePlaceIcon(icon, category)}
+        size={Math.round(size * 0.5)}
+        color={theme.text}
+      />
     </View>
   );
 }
@@ -66,10 +71,12 @@ export function PlaceCard({
       ]}>
       <PlaceIcon category={place.category} icon={place.icon} color={place.color} />
       <View style={styles.text}>
-        <ThemedText numberOfLines={1} style={styles.name}>
-          {place.name}
-          {place.isFavorite ? ' ★' : ''}
-        </ThemedText>
+        <View style={styles.nameRow}>
+          <ThemedText numberOfLines={1} style={styles.name}>
+            {place.name}
+          </ThemedText>
+          {place.isFavorite ? <Icon name="star" size={14} color={theme.accent} /> : null}
+        </View>
         {showCategory ? (
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
             {strings.place.categories[place.category]}
@@ -82,9 +89,9 @@ export function PlaceCard({
       <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
         {formatCopy(strings.places.alertsAt, {
           distance: formatDistance(place.defaultRadiusM, unit),
-        })}{' '}
-        ›
+        })}
       </ThemedText>
+      <Icon name="chevron-forward" size={16} color={theme.textSecondary} />
     </Pressable>
   );
 }
@@ -112,7 +119,7 @@ export function DestinationCard({
         { borderBottomColor: theme.border, opacity: pressed ? 0.6 : 1 },
       ]}>
       <ThemedView type="backgroundElement" style={styles.pin}>
-        <ThemedText type="small">📍</ThemedText>
+        <Icon name="location-outline" size={18} color={theme.textSecondary} />
       </ThemedView>
       <View style={styles.text}>
         <ThemedText numberOfLines={1} style={styles.name}>
@@ -124,9 +131,7 @@ export function DestinationCard({
           </ThemedText>
         ) : null}
       </View>
-      <ThemedText type="small" themeColor="textSecondary">
-        ›
-      </ThemedText>
+      <Icon name="chevron-forward" size={16} color={theme.textSecondary} />
     </Pressable>
   );
 }
@@ -147,9 +152,15 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
   name: {
     fontSize: 16,
     fontWeight: '600',
+    flexShrink: 1,
   },
   pin: {
     width: 36,

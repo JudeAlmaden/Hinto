@@ -14,6 +14,8 @@ import { Spacing } from '@/constants/theme';
 import { getDatabase, resetStorage, retryStorage } from '@/db/client';
 import { useSettings } from '@/hooks/use-settings';
 import { useStorage } from '@/hooks/use-storage';
+import type { Appearance } from '@/modules/settings/appearance';
+import { useAppearance } from '@/modules/settings/appearance';
 import type { ReadinessIssue } from '@/modules/permissions';
 import { getReadinessIssues } from '@/modules/permissions/service';
 import { clearJourneyHistory, deleteAllData } from '@/modules/journeys/repository';
@@ -26,6 +28,8 @@ export default function SettingsScreen() {
   const storage = useStorage();
   const { settings, update } = useSettings();
   const loadPlaces = usePlacesStore((state) => state.load);
+
+  const setAppearance = useAppearance((state) => state.setPreference);
 
   const [issues, setIssues] = useState<ReadinessIssue[]>([]);
   const [resetVisible, setResetVisible] = useState(false);
@@ -57,6 +61,20 @@ export default function SettingsScreen() {
         text: formatCopy(strings.settings.minutes, { minutes }),
         onPress: () => void update({ snooze_minutes: minutes }),
       })),
+      { text: strings.common.cancel, style: 'cancel' as const },
+    ]);
+  };
+
+  const applyAppearance = (appearance: Appearance) => {
+    setAppearance(appearance);
+    void update({ appearance });
+  };
+
+  const pickTheme = () => {
+    Alert.alert(strings.settings.theme, undefined, [
+      { text: strings.settings.themeSystem, onPress: () => applyAppearance('system') },
+      { text: strings.settings.themeLight, onPress: () => applyAppearance('light') },
+      { text: strings.settings.themeDark, onPress: () => applyAppearance('dark') },
       { text: strings.common.cancel, style: 'cancel' as const },
     ]);
   };
@@ -159,6 +177,17 @@ export default function SettingsScreen() {
 
       <SectionLabel>{strings.settings.display}</SectionLabel>
       <View>
+        <NavRow
+          label={strings.settings.theme}
+          value={
+            settings.appearance === 'system'
+              ? strings.settings.themeSystem
+              : settings.appearance === 'dark'
+                ? strings.settings.themeDark
+                : strings.settings.themeLight
+          }
+          onPress={pickTheme}
+        />
         <NavRow
           label={strings.settings.distanceUnit}
           value={settings.distance_unit === 'mi' ? 'Miles' : 'Kilometres'}

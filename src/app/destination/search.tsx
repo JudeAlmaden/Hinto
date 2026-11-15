@@ -1,10 +1,11 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppButton, Card, SectionLabel, TextField } from '@/components/ui/controls';
+import { Mascot } from '@/components/ui/mascot';
 import { DestinationCard, PlaceCard } from '@/components/ui/place';
 import { Screen } from '@/components/ui/screen';
 import { strings } from '@/constants/strings';
@@ -68,7 +69,14 @@ export default function DestinationSearchScreen() {
   };
 
   return (
-    <Screen title={strings.destination.title} back>
+    <Screen
+      title={strings.destination.title}
+      back
+      footer={
+        <ThemedText type="small" themeColor="textSecondary" style={styles.attribution}>
+          {offline ? strings.destination.offlineBody : strings.destination.attribution}
+        </ThemedText>
+      }>
       <TextField
         value={query}
         onChangeText={(next) => {
@@ -180,15 +188,33 @@ export default function DestinationSearchScreen() {
         </>
       ) : null}
 
+      {(offline || query.trim().length < SEARCH.minCharacters) && places.length === 0 ? (
+        <Card style={styles.empty}>
+          <Mascot pose="navigator" height={132} />
+          <ThemedText style={styles.emptyTitle}>{strings.destination.noSavedTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.emptyBody}>
+            {strings.destination.noSavedBody}
+          </ThemedText>
+        </Card>
+      ) : null}
+
       <AppButton
         label={strings.destination.dropPin}
         variant="secondary"
-        onPress={() => router.push('/destination/pin')}
+        onPress={() =>
+          router.push({ pathname: '/destination/pin', params: { intent: 'journey' } })
+        }
       />
 
-      <ThemedText type="small" themeColor="textSecondary" style={styles.attribution}>
-        {offline ? strings.destination.offlineBody : strings.destination.attribution}
-      </ThemedText>
+      <Pressable
+        onPress={() =>
+          router.push({ pathname: '/destination/pin', params: { intent: 'save' } })
+        }>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.saveLink}>
+          {strings.destination.savePlace}
+        </ThemedText>
+      </Pressable>
+
     </Screen>
   );
 }
@@ -200,6 +226,24 @@ const styles = StyleSheet.create({
   },
   attribution: {
     textAlign: 'center',
-    paddingTop: Spacing.two,
+    paddingTop: Spacing.one,
+  },
+  saveLink: {
+    textAlign: 'center',
+    paddingVertical: Spacing.one,
+    textDecorationLine: 'underline',
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.three,
+    gap: Spacing.two,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  emptyBody: {
+    textAlign: 'center',
+    paddingHorizontal: Spacing.two,
   },
 });

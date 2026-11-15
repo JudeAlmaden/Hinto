@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { OnboardingShell } from '@/components/onboarding-shell';
 import { Card } from '@/components/ui/controls';
+import { Mascot } from '@/components/ui/mascot';
 import { formatCopy, strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import { openBatterySettings } from '@/modules/permissions/service';
@@ -24,6 +25,7 @@ export default function BatteryOnboardingScreen() {
       secondaryLabel={strings.onboarding.batteryLater}
       onSecondary={() => router.push('/onboarding/alarm-test')}
       skipTo="/onboarding/ready">
+      <Mascot expression="sleepy" height={96} />
       <Card style={styles.card}>
         <ThemedText type="smallBold">
           {formatCopy(strings.onboarding.batteryDetected, { manufacturer, model })}

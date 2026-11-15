@@ -1,18 +1,25 @@
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { ThemedView } from '@/components/themed-view';
+import { strings } from '@/constants/strings';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useResolvedScheme } from '@/hooks/use-appearance';
 import { useTheme } from '@/hooks/use-theme';
 
 export interface ScreenProps {
   title?: string;
   subtitle?: string;
+  /** Show the Hinto wordmark instead of a text title. */
+  logo?: boolean;
   back?: boolean;
   right?: ReactNode;
+  /** Extra block under the title row (greeting, next action, etc.). */
+  headerContent?: ReactNode;
   children: ReactNode;
   scroll?: boolean;
   footer?: ReactNode;
@@ -24,8 +31,10 @@ export interface ScreenProps {
 export function Screen({
   title,
   subtitle,
+  logo = false,
   back = false,
   right,
+  headerContent,
   children,
   scroll = true,
   footer,
@@ -33,7 +42,9 @@ export function Screen({
 }: ScreenProps) {
   const router = useRouter();
   const theme = useTheme();
-  const showsHeader = Boolean(title || back || right);
+  const scheme = useResolvedScheme();
+  const insets = useSafeAreaInsets();
+  const showsHeader = Boolean(title || back || right || logo || headerContent);
 
   const body = scroll ? (
     <ScrollView
@@ -56,10 +67,22 @@ export function Screen({
           <View style={styles.header}>
             {back ? (
               <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
-                <ThemedText style={styles.backGlyph}>‹</ThemedText>
+                <Icon name="chevron-back" size={26} themeColor="text" />
               </Pressable>
             ) : null}
             <View style={styles.headerText}>
+              {logo ? (
+                <Image
+                  source={
+                    scheme === 'dark'
+                      ? require('@/assets/images/logo-dark.png')
+                      : require('@/assets/images/logo-light.png')
+                  }
+                  style={styles.logo}
+                  resizeMode="contain"
+                  accessibilityLabel={strings.appName}
+                />
+              ) : null}
               {title ? (
                 <ThemedText style={styles.title} numberOfLines={1}>
                   {title}
@@ -75,10 +98,21 @@ export function Screen({
           </View>
         ) : null}
 
+        {headerContent ? <View style={styles.headerExtra}>{headerContent}</View> : null}
+
         {body}
 
         {footer ? (
-          <View style={[styles.footer, { borderTopColor: theme.border }]}>{footer}</View>
+          <View
+            style={[
+              styles.footer,
+              {
+                borderTopColor: theme.border,
+                paddingBottom: Math.max(insets.bottom, Spacing.two) + Spacing.one,
+              },
+            ]}>
+            {footer}
+          </View>
         ) : null}
       </SafeAreaView>
     </ThemedView>
@@ -101,14 +135,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.one,
+    minHeight: 48,
     paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.three,
   },
   backButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
+    marginLeft: -Spacing.two,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -119,6 +155,15 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
     gap: Spacing.half,
+  },
+  headerExtra: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.two,
+  },
+  logo: {
+    width: 124,
+    height: 66,
+    alignSelf: 'flex-start',
   },
   title: {
     fontSize: 22,
@@ -134,12 +179,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.three,
   },
   tabInset: {
-    paddingBottom: 96,
+    paddingBottom: 116,
   },
   footer: {
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-    paddingBottom: Spacing.two,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: Spacing.two,
   },

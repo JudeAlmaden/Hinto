@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { EmptyState, SectionLabel } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
 import { Screen } from '@/components/ui/screen';
@@ -108,6 +109,7 @@ export default function HistoryScreen() {
         <EmptyState
           title={strings.history.emptyTitle}
           body={strings.history.emptyBody}
+          pose="ready"
           actionLabel={strings.history.planJourney}
           onAction={() => router.push('/')}
         />
@@ -155,9 +157,7 @@ export default function HistoryScreen() {
                           })}`}
                     </ThemedText>
                   </View>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    ›
-                  </ThemedText>
+                  <Icon name="chevron-forward" size={16} themeColor="textSecondary" />
                 </Pressable>
               ))}
             </View>

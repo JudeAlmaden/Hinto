@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { ChipRow } from '@/components/ui/chip-row';
 import { Chip, TextField } from '@/components/ui/controls';
 import { strings } from '@/constants/strings';
 import { MAX_RADIUS_M, MIN_RADIUS_M, RADIUS_PRESETS_M } from '@/constants/alarms';
@@ -37,7 +37,7 @@ export function RadiusPicker({
 
   return (
     <View style={styles.container}>
-      <View style={styles.chips}>
+      <ChipRow>
         {PRESETS.map((preset) => (
           <Chip
             key={preset}
@@ -58,7 +58,7 @@ export function RadiusPicker({
             setDraft(String(value));
           }}
         />
-      </View>
+      </ChipRow>
 
       {customOpen ? (
         <View style={styles.customRow}>
@@ -70,22 +70,13 @@ export function RadiusPicker({
             hint={`${MIN_RADIUS_M}–${MAX_RADIUS_M} m`}
           />
         </View>
-      ) : (
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatRadius(value, unit)}
-        </ThemedText>
-      )}
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.two,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.two,
   },
   customRow: {

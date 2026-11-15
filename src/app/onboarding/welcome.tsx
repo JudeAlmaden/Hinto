@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { OnboardingShell } from '@/components/onboarding-shell';
+import { Mascot } from '@/components/ui/mascot';
 import { strings } from '@/constants/strings';
-import { Radii, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -20,10 +21,8 @@ export default function WelcomeScreen() {
       onPrimary={() => router.push('/onboarding/how-it-works')}
       secondaryLabel={strings.onboarding.howItWorks}
       onSecondary={() => router.push('/onboarding/how-it-works')}>
-      <View style={styles.mark}>
-        <ThemedText style={styles.markGlyph}>◎</ThemedText>
-      </View>
-      <ThemedText type="small" themeColor="textSecondary">
+      <Mascot pose="friendly" height={176} />
+      <ThemedText type="small" themeColor="textSecondary" style={styles.tagline}>
         {strings.tagline}
       </ThemedText>
     </OnboardingShell>
@@ -31,17 +30,7 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  mark: {
-    width: 96,
-    height: 96,
-    borderRadius: Radii.pill,
-    backgroundColor: '#208AEF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.two,
-  },
-  markGlyph: {
-    fontSize: 44,
-    color: '#FFFFFF',
+  tagline: {
+    marginTop: Spacing.two,
   },
 });

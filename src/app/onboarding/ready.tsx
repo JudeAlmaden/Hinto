@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { OnboardingShell } from '@/components/onboarding-shell';
 import { ReadinessChecklist, type ChecklistItem } from '@/components/ui/checklist';
+import { Mascot } from '@/components/ui/mascot';
 import { strings } from '@/constants/strings';
 import { ONBOARDING_VERSION } from '@/constants/app';
 import { Spacing } from '@/constants/theme';
@@ -86,6 +87,7 @@ export default function ReadyOnboardingScreen() {
       body={strings.onboarding.readyBody}
       primaryLabel={strings.onboarding.startUsing}
       onPrimary={() => void finish()}>
+      <Mascot pose="ready" height={140} />
       <View style={styles.list}>
         <ReadinessChecklist items={items} />
       </View>

@@ -3,7 +3,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { Chip, EmptyState, SectionLabel, TextField } from '@/components/ui/controls';
+import { ChipRow } from '@/components/ui/chip-row';
 import { PlaceCard } from '@/components/ui/place';
 import { Screen } from '@/components/ui/screen';
 import { strings } from '@/constants/strings';
@@ -59,7 +61,7 @@ export default function PlacesScreen() {
         <Pressable
           onPress={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
           hitSlop={12}>
-          <ThemedText style={styles.plus}>+</ThemedText>
+          <Icon name="add" size={26} themeColor="text" />
         </Pressable>
       }>
       <TextField
@@ -69,7 +71,7 @@ export default function PlacesScreen() {
         autoCorrect={false}
       />
 
-      <View style={styles.chips}>
+      <ChipRow bleed>
         <Chip label={strings.places.all} selected={filter === 'all'} onPress={() => setFilter('all')} />
         {PLACE_CATEGORIES.map((category) => (
           <Chip
@@ -79,7 +81,7 @@ export default function PlacesScreen() {
             onPress={() => setFilter(category)}
           />
         ))}
-      </View>
+      </ChipRow>
 
       {loading && places.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
@@ -93,11 +95,12 @@ export default function PlacesScreen() {
         <EmptyState
           title={strings.places.emptyTitle}
           body={strings.places.emptyBody}
+          pose="onTheGo"
           actionLabel={strings.places.addPlace}
           onAction={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
         />
       ) : filtered.length === 0 ? (
-        <EmptyState title={strings.places.filterEmpty} body={strings.places.emptyBody} />
+        <EmptyState title={strings.places.filterEmpty} body={strings.places.emptyBody} pose="navigator" />
       ) : (
         <>
           {favourites.length > 0 ? (
@@ -148,11 +151,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '600',
   },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
+
   hint: {
     textAlign: 'center',
     paddingTop: Spacing.two,

@@ -5,6 +5,139 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+### Changed
+- Place form: the side preview tile is gone (it misaligned the Name field),
+  icons use a measured four-column grid so every tile is identical, and the
+  Name field owns the coordinates as its hint.
+- Ionicon glyphs use an exact line height, removing Android font padding that
+  made them sit low inside tiles and buttons.
+- Duplicate confirmation only runs when creating a place; editing never asks.
+- Place edit screen drops the Duplicate button and moves Delete into a `⋯`
+  header menu; the journey screen's `⋯` holds Journey options, Save this
+  destination and End journey, with End no longer occupying the footer.
+- Project root holds only `AGENTS.md`, `CHANGELOG.md`, `Design.md` and a
+  project-specific `README.md`; the historical spec, plan and wireframes moved
+  to `docs/archive/`.
+- Pin destination rebuilt around the map: full-bleed MapLibre view with a
+  floating back/title header, a fixed centre pin that reports the map centre on
+  every gesture, a "My location" FAB, and a bottom sheet with an editable
+  suggested name, live reverse geocoding and one primary action per intent
+  ("Save this place" from Places, "Use this point" from journey setup).
+  Coordinates live inside the sheet instead of replacing the map.
+
+### Changed
+- Home guide mascot appears beside the greeting at 64 dp, swapping to the small
+  alert avatar when the status line is showing; the next-stop card dropped its
+  eyebrow label (name and CTA carry it) and always has a useful meta line
+  (“alarm at 500 m” before the first GPS fix, distance once known).
+- Home filled out for the common case: saved places are now a 2-column grid of
+  tall cards (icon, wrapping name, category · alarm distance) with a dashed
+  “Add a place” tile, so one saved place no longer reads as a lonely row.
+- The three separate permission/battery strips became one **Alarm readiness**
+  card that shows “Ready to wake you” when everything is granted, or the first
+  three blockers with a Fix link.
+
+### Added
+- Home “Your next stop” card: the closest saved place (favourite first) now leads
+  the page as a bordered card with a 56 dp icon, 22 px name, distance and a
+  Start journey button; the old small row in the header is gone. This is the
+  state most people see, so Home is visibly different even with no journey
+  running.
+- Home hero rule: with no saved places the search card is replaced by a mascot
+  hero (“Make Hinto yours”, Add a place / Drop a pin); while a journey is active
+  the search collapses to a one-line pill so the journey card is the only focal
+  point.
+- Mascot system: expressions (`happy`, `sleepy`, `thinking`, `surprised`,
+  `worried`, `annoyed`), a size ladder (`inline` 36 → `full` 240) and one mascot
+  per screen. Appearances now: Home hero, Home status line, interrupted card,
+  empty Places/History, onboarding (welcome, how-it-works, battery, ready),
+  completed-journey celebration and the alarm screen.
+- Home header now greets by time of day (Good morning / afternoon / evening)
+  and surfaces the next saved place: favourite first, otherwise the closest to
+  the last GPS fix, otherwise the first saved place. Tapping it opens journey
+  setup for that place; with no places it explains that saved stops appear here.
+- Home guide card: the mascot appears with one contextual line — “Make Hinto
+  yours” when no places are saved (with an Add action), “You are offline” when
+  the network drops, and “Looking for a signal” while GPS is waiting. It only
+  renders when there is something to say.
+- Shared UI primitives: `ChipRow`, `FormSection`, `IconGrid`, `ColorSwatches`,
+  `SegmentedControl`, `MoreMenu` and `BottomSheet`, so filters, tags, radius
+  chips, the icon grid, sheets and destructive actions come from one place.
+- `usePlaceForm` hook owns the place draft, validation, duplicate guard and
+  persistence; `PlaceForm` is now layout only.
+- Pin sheet carries a Journey/Place segmented control when the screen is opened
+  without an intent, and Destination search routes its pin button explicitly.
+- Destination search offers “Save a place” as a secondary action.
+- Place colour selector: five soft tints plus “Default”, stored in
+  `places.color` and shown behind the icon everywhere.
+- Destination search now has an empty state (navigator pose, “Nothing saved
+  yet”) when there are no saved places and no query, instead of a blank page.
+- Status bar follows the theme, so the clock and battery are dark on the light
+  background instead of white-on-cream.
+- Places filters, the new-place tag picker and the alert-distance chips are
+  single scrolling rows instead of wrapping onto a second line.
+- Place form: uppercase field labels, four-column icon grid with an amber fill
+  and check badge on the selected icon, and the preview shows the icon instead of
+  printing its name ("locatio…") as text.
+- Header and footer spacing: taller header with a 44 dp back target, and sticky
+  footers clear the gesture bar; "Center on me" and "Enter coordinates" are now
+  "My location" and "Coordinates" so they fit on one line.
+- Destination search puts the Photon/OpenStreetMap credit in the footer instead
+  of stranded in the middle of an empty screen.
+- Reverse geocoding drops plus codes (`WCJC+6F7`), so a pinned place suggests a
+  street or district instead of a code, and toggles use the amber track.
+- Mascot artwork in the UI via `components/ui/mascot.tsx`: the friendly guide
+  greets onboarding, the navigator fills Home's empty places card, the on-the-go
+  pose stands on the active journey card and empty Places, Alert Mode appears
+  when a journey was interrupted, and Ready to Go fills empty History.
+- Hinto wordmark in the Home header via `Screen logo`, with separate
+  `logo-light.png` (navy) and `logo-dark.png` (cream) exports so no background
+  plate is needed; mascot poses and expressions copied to `assets/mascot/`.
+- Floating pill bottom navigation with a filled `accentSoft` icon slot on the
+  active tab; labels sit inside the bar with no overlap.
+- Ionicons icon set (`@expo/vector-icons`) behind `components/ui/icon.tsx`;
+  place icons are now icon names with a one-time emoji migration, and every
+  interface glyph (search, chevrons, checks, add, tabs, empty states) uses it.
+- Custom bottom navigation: amber pill on the active tab, filled icon, warm
+  surface and hairline border instead of the plain native bar.
+- The app now defaults to light mode; `appearance` still accepts `system`.
+- Theme preference (`system` / `light` / `dark`) stored in settings and applied
+  by `useTheme`; the Home header swaps its settings button for a sun/moon
+  toggle, and Settings → Display exposes all three.
+- Warm Daylight design system in `constants/theme.ts`: the documented amber,
+  coral, sage and warm-paper palette in light mode with a matching warm-night
+  dark palette, plus `accentSoft`/`accentBorder` tokens for the rare saturated
+  surface.
+- Plus Jakarta Sans (400–800) loaded in the root layout, resolved by weight in
+  `ThemedText` and used by text inputs; the native splash stays up until the
+  fonts are ready.
+
+### Changed
+- Place icon picker uses the outline twins, so the grid reads lighter than the
+  filled icons on tiles; the selected one stays filled.
+- Tabs no longer use the PNG icon assets or `NativeTabs`; the JS bar makes the
+  active destination legible at a glance.
+- Home is no longer a flat list: an amber hero search card, two-column saved
+  place tiles with icons and alert radius, an amber-tinted active-journey card
+  with amber progress, a pin-led empty state, and an icon on recent rows.
+- Amber replaces the old blue accents on onboarding marks, the journey progress
+  bar, the map pin and the tracking notification colour.
+- `Desig.md` now records the shipped status, the warm-night palette, the emoji
+  icon policy, the Home composition, the mascot direction and the saved-place
+  flow.
+
+### Fixed
+- Recent destinations no longer include prepared or cancelled journeys. Journey
+  setup writes a draft row on mount and the recents query counted every row, so
+  merely opening setup (or dropping a pin on the way to one) left a destination
+  in Home's RECENT list without a journey ever starting. Existing ghost rows are
+  hidden by the query.
+
+### Removed
+- Duplicate mascot placements on Home: the guide card, the pose on the active
+  journey card and the mascot inside the empty Saved card. Each screen now shows
+  at most one mascot, only when there is something to explain or celebrate.
+
 ## [0.4.0] - 2026-11-14
 
 ### Added

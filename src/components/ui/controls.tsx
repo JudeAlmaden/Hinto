@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Icon } from '@/components/ui/icon';
+import { Mascot, type MascotPose } from '@/components/ui/mascot';
 import { ThemedView } from '@/components/themed-view';
-import { Radii, Spacing } from '@/constants/theme';
+import { FontFamilies, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -79,6 +81,7 @@ export function TextField({
   ...props
 }: TextInputProps & { label?: string; hint?: string; error?: string | null }) {
   const theme = useTheme();
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={styles.field}>
@@ -89,15 +92,25 @@ export function TextField({
       ) : null}
       <TextInput
         placeholderTextColor={theme.textSecondary}
+        {...props}
+        onFocus={(event) => {
+          setFocused(true);
+          props.onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          props.onBlur?.(event);
+        }}
         style={[
           styles.input,
           {
             color: theme.text,
             backgroundColor: theme.backgroundElement,
-            borderColor: error ? theme.danger : 'transparent',
+            borderColor: error ? theme.danger : focused ? theme.accent : 'transparent',
+            borderWidth: error || focused ? 1 : 0,
           },
+          props.style,
         ]}
-        {...props}
       />
       {error ? (
         <ThemedText type="small" style={{ color: theme.danger }}>
@@ -173,7 +186,7 @@ export function NavRow({
           {value}
         </ThemedText>
       ) : null}
-      {onPress ? <ThemedText type="small" themeColor="textSecondary">{'›'}</ThemedText> : null}
+      {onPress ? <Icon name="chevron-forward" size={16} themeColor="textSecondary" /> : null}
     </Pressable>
   );
 }
@@ -207,7 +220,12 @@ export function ToggleRow({
           </ThemedText>
         ) : null}
       </View>
-      <Switch value={value} onValueChange={onValueChange} />
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: theme.backgroundSelected, true: theme.accentSoft }}
+        thumbColor={value ? theme.accent : undefined}
+      />
     </View>
   );
 }
@@ -249,14 +267,17 @@ export function EmptyState({
   body,
   actionLabel,
   onAction,
+  pose,
 }: {
   title: string;
   body?: string;
   actionLabel?: string;
   onAction?: () => void;
+  pose?: MascotPose;
 }) {
   return (
     <View style={styles.empty}>
+      {pose ? <Mascot pose={pose} height={132} /> : null}
       <ThemedText style={styles.emptyTitle}>{title}</ThemedText>
       {body ? (
         <ThemedText type="small" themeColor="textSecondary" style={styles.emptyBody}>
@@ -295,6 +316,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three,
     fontSize: 16,
+    fontFamily: FontFamilies.medium,
     borderWidth: StyleSheet.hairlineWidth * 2,
   },
   sectionRow: {

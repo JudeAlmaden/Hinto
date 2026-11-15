@@ -22,6 +22,7 @@ export const appSettingsSchema = z.object({
   alarm_sound_id: z.enum(ALARM_SOUND_IDS).default('classic'),
   /** Local file URI copied into app storage; null until the user picks one. */
   custom_alarm_uri: z.string().nullable().default(null),
+  appearance: z.enum(['system', 'light', 'dark']).default('light'),
   vibration_enabled: z.boolean().default(true),
   repeat_until_dismissed: z.boolean().default(true),
   snooze_minutes: z.number().int().min(1).max(60).default(5),

@@ -1,20 +1,26 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Icon } from '@/components/ui/icon';
+import { Mascot } from '@/components/ui/mascot';
+import { useResolvedScheme } from '@/hooks/use-appearance';
+import { useSettings } from '@/hooks/use-settings';
+import { useAppearance } from '@/modules/settings/appearance';
 import { AppButton, Card, SectionLabel } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
 import { ResetStorageDialog } from '@/components/ui/reset-dialog';
-import { PlaceCard } from '@/components/ui/place';
+import { PlaceIcon } from '@/components/ui/place';
 import { Screen } from '@/components/ui/screen';
 import { StatusPill } from '@/components/ui/status-pill';
 import { formatCopy, strings } from '@/constants/strings';
 import { Radii, Spacing } from '@/constants/theme';
 import { getDatabase, resetStorage, retryStorage } from '@/db/client';
+import { haversineMeters } from '@/modules/geofence/distance';
 import { useActiveJourney } from '@/hooks/use-active-journey';
+import { useTheme } from '@/hooks/use-theme';
 import { usePlaces } from '@/hooks/use-places';
 import { useStorage } from '@/hooks/use-storage';
 import { useTracking } from '@/hooks/use-tracking';
@@ -31,15 +37,48 @@ import { progressToRadius } from '@/utils/progress';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { update: updateSettings } = useSettings();
+  const scheme = useResolvedScheme();
+  const setAppearance = useAppearance((state) => state.setPreference);
+
+  const toggleTheme = () => {
+    const next = scheme === 'dark' ? 'light' : 'dark';
+    setAppearance(next);
+    void updateSettings({ appearance: next });
+  };
   const net = useNetInfo();
   const active = useActiveJourney();
   const tracking = useTracking();
   const storage = useStorage();
   const { places } = usePlaces();
+  const theme = useTheme();
 
   const journey = active.data?.journey ?? null;
   const settings = active.data?.settings ?? DEFAULT_SETTINGS;
   const unit = settings.distance_unit;
+
+  const hour = new Date().getHours();
+  const greeting =
+    hour >= 5 && hour < 12
+      ? strings.home.greetingMorning
+      : hour >= 12 && hour < 18
+        ? strings.home.greetingAfternoon
+        : strings.home.greetingEvening;
+
+  // Favourite wins; otherwise the closest place to the last fix, then the first.
+  const nextPlace = useMemo(() => {
+    if (places.length === 0) return null;
+    const favourite = places.find((place) => place.isFavorite);
+    if (favourite) return favourite;
+    const sample = tracking.lastSample;
+    if (!sample) return places[0];
+    return [...places].sort(
+      (a, b) => haversineMeters(sample, a) - haversineMeters(sample, b),
+    )[0];
+  }, [places, tracking.lastSample]);
+
+  const nextDistanceM =
+    nextPlace && tracking.lastSample ? haversineMeters(tracking.lastSample, nextPlace) : null;
 
   const [issues, setIssues] = useState<ReadinessIssue[]>([]);
   const [recent, setRecent] = useState<RecentDestination[]>([]);
@@ -93,9 +132,15 @@ export default function HomeScreen() {
   };
 
   const distanceM = tracking.lastKnownDistanceM ?? journey?.lastKnownDistanceM ?? null;
-  const blocking = issues.filter((issue) => issue.severity === 'blocking');
-  const warnings = issues.filter((issue) => issue.severity === 'warning');
   const offline = net.isConnected === false;
+  const statusNote =
+    !journey && places.length > 0
+      ? offline
+        ? strings.home.guideOfflineBody
+        : tracking.status === 'waiting' || tracking.status === 'stale'
+          ? strings.home.guideFixBody
+          : null
+      : null;
   const gpsDown = tracking.gpsAvailable === false;
 
   const openSetup = (destination: RecentDestination | (typeof places)[number], radiusM: number) => {
@@ -133,27 +178,128 @@ export default function HomeScreen() {
 
   return (
     <Screen
-      title={strings.appName}
-      subtitle={strings.tagline}
+      logo
       tabInset
+      headerContent={
+        <View style={styles.greetingBlock}>
+          <View style={styles.greetingRow}>
+            <ThemedText style={styles.greeting}>{greeting}</ThemedText>
+            {statusNote ? null : <Mascot pose="navigator" height={64} />}
+          </View>
+
+          {statusNote ? (
+            <View style={styles.statusLine}>
+              <Mascot pose="alert" height={36} />
+              <ThemedText type="small" themeColor="textSecondary" style={styles.statusText}>
+                {statusNote}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      }
       right={
-        <Pressable onPress={() => router.push('/settings')} hitSlop={12}>
-          <ThemedText style={styles.gear}>⚙</ThemedText>
+        <Pressable
+          onPress={toggleTheme}
+          accessibilityRole="button"
+          accessibilityLabel={strings.settings.theme}
+          hitSlop={12}
+          style={[styles.gearButton, { backgroundColor: theme.accentSoft }]}>
+          <Icon name={scheme === 'dark' ? 'sunny-outline' : 'moon-outline'} size={20} color={theme.accent} />
         </Pressable>
       }>
-      <Pressable
-        accessibilityRole="search"
-        onPress={() => router.push('/destination/search')}
-        style={({ pressed }) => [styles.search, pressed && { opacity: 0.7 }]}>
-        <ThemedView type="backgroundElement" style={styles.searchInner}>
-          <ThemedText type="small" themeColor="textSecondary">
-            🔍
+      {nextPlace && !journey ? (
+        <Card style={[styles.nextCard, { borderColor: theme.accentBorder }]}>
+          <View style={styles.nextCardRow}>
+            <PlaceIcon
+              category={nextPlace.category}
+              icon={nextPlace.icon}
+              color={nextPlace.color}
+              size={56}
+            />
+            <View style={styles.nextText}>
+              <ThemedText style={styles.nextCardName} numberOfLines={2}>
+                {nextPlace.name}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                {strings.place.categories[nextPlace.category]}
+                {nextDistanceM !== null
+                  ? ` · ${formatDistance(nextDistanceM, unit)} ${strings.journey.toGo}`
+                  : ` · ${strings.home.alarmAt} ${formatDistance(nextPlace.defaultRadiusM, unit)}`}
+              </ThemedText>
+            </View>
+          </View>
+          <AppButton
+            label={strings.home.startJourney}
+            onPress={() => openSetup(nextPlace, nextPlace.defaultRadiusM)}
+          />
+        </Card>
+      ) : null}
+
+      {places.length === 0 && !journey ? (
+        <View
+          style={[
+            styles.hero,
+            { backgroundColor: theme.accentSoft, borderColor: theme.accentBorder },
+          ]}>
+          <Mascot pose="friendly" height={152} />
+          <ThemedText style={styles.heroTitle}>{strings.home.guideEmptyTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.heroBody}>
+            {strings.home.guideEmptyBody}
           </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
+          <View style={styles.heroActions}>
+            <AppButton
+              label={strings.places.addPlace}
+              onPress={() =>
+                router.push({ pathname: '/destination/pin', params: { intent: 'save' } })
+              }
+              style={styles.heroAction}
+            />
+            <AppButton
+              label={strings.home.dropPin}
+              variant="secondary"
+              onPress={() =>
+                router.push({ pathname: '/destination/pin', params: { intent: 'journey' } })
+              }
+              style={styles.heroAction}
+            />
+          </View>
+        </View>
+      ) : journey ? (
+        <Pressable
+          accessibilityRole="search"
+          onPress={() => router.push('/destination/search')}
+          style={({ pressed }) => [
+            styles.searchCompact,
+            { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+            pressed && { opacity: 0.85 },
+          ]}>
+          <Icon name="search" size={16} color={theme.accent} />
+          <ThemedText type="small" style={{ flex: 1, color: theme.textSecondary }}>
             {strings.home.searchPlaceholder}
           </ThemedText>
-        </ThemedView>
-      </Pressable>
+          <Icon name="chevron-forward" size={16} themeColor="textSecondary" />
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="search"
+          onPress={() => router.push('/destination/search')}
+          style={({ pressed }) => [
+            styles.search,
+            { backgroundColor: theme.accentSoft, borderColor: theme.accentBorder },
+            pressed && { opacity: 0.85 },
+          ]}>
+          <View style={[styles.searchBadge, { backgroundColor: theme.accent }]}>
+            <Icon name="search" size={18} color={theme.accentText} />
+          </View>
+          <View style={styles.searchText}>
+            <ThemedText style={styles.searchTitle}>{strings.home.searchPlaceholder}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {strings.home.searchHint}
+            </ThemedText>
+          </View>
+          <Icon name="chevron-forward" size={22} color={theme.accent} />
+        </Pressable>
+      )}
 
       {storage.state === 'unavailable' ? (
         <Card style={styles.strip}>
@@ -175,39 +321,68 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
-      {blocking.length > 0 ? (
-        <Card style={styles.strip}>
-          <ThemedText type="small">
-            {blocking[0].key === 'locationServices'
-              ? strings.home.locationsOff
-              : blocking[0].message}
-          </ThemedText>
-          <AppButton
-            label={strings.home.fix}
-            variant="secondary"
-            onPress={() => router.push('/settings/permissions')}
-          />
-        </Card>
-      ) : null}
-
-      {tracking.restrictionSuspected ? (
-        <Card style={styles.strip}>
-          <ThemedText type="small" style={styles.warningText}>
-            {strings.home.batteryHint}
-          </ThemedText>
-        </Card>
-      ) : null}
-
-      {warnings.length > 0 && blocking.length === 0 ? (
-        <Card style={styles.strip}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {warnings[0].message}
-          </ThemedText>
+      {!journey ? (
+        <Card style={styles.readiness}>
+          <View style={styles.readinessHead}>
+            <Icon
+              name={issues.length === 0 ? 'checkmark-circle' : 'alert-circle'}
+              size={18}
+              color={issues.length === 0 ? theme.success : theme.warning}
+            />
+            <ThemedText style={styles.readinessTitle}>
+              {issues.length === 0 ? strings.home.readinessReady : strings.home.readinessNeeds}
+            </ThemedText>
+          </View>
+          {issues.length === 0 && !tracking.restrictionSuspected ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {strings.home.readinessBody}
+            </ThemedText>
+          ) : null}
+          {issues.slice(0, 3).map((issue) => (
+            <Pressable
+              key={issue.key}
+              accessibilityRole="button"
+              onPress={() => router.push('/settings/permissions')}
+              style={({ pressed }) => [styles.readinessRow, pressed && { opacity: 0.6 }]}>
+              <ThemedText
+                type="small"
+                style={[
+                  styles.readinessMessage,
+                  { color: issue.severity === 'blocking' ? theme.text : theme.textSecondary },
+                ]}>
+                {issue.key === 'locationServices' ? strings.home.locationsOff : issue.message}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.accent }}>
+                {strings.home.fix}
+              </ThemedText>
+            </Pressable>
+          ))}
+          {tracking.restrictionSuspected ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/settings/permissions')}
+              style={({ pressed }) => [styles.readinessRow, pressed && { opacity: 0.6 }]}>
+              <ThemedText type="small" style={[styles.readinessMessage, { color: theme.warning }]}>
+                {strings.home.batteryHint}
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.accent }}>
+                {strings.home.fix}
+              </ThemedText>
+            </Pressable>
+          ) : null}
         </Card>
       ) : null}
 
       {journey && journey.status !== 'interrupted' ? (
-        <Card style={styles.journeyCard}>
+        <Card
+          style={[
+            styles.journeyCard,
+            {
+              backgroundColor: theme.accentSoft,
+              borderColor: theme.accentBorder,
+              borderWidth: StyleSheet.hairlineWidth * 2,
+            },
+          ]}>
           <View style={styles.journeyHeader}>
             <StatusPill status={tracking.status} />
             <ThemedText type="small" themeColor="textSecondary">
@@ -221,7 +396,9 @@ export default function HomeScreen() {
 
           <View style={styles.stats}>
             <View style={styles.stat}>
-              <ThemedText style={styles.statValue}>{formatDistance(distanceM, unit)}</ThemedText>
+              <ThemedText style={[styles.statValue, { color: theme.accent }]}>
+                {formatDistance(distanceM, unit)}
+              </ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {strings.journey.toGo}
               </ThemedText>
@@ -237,11 +414,14 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.progressBlock}>
-            <View style={styles.progressTrack}>
+            <View style={[styles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
               <View
                 style={[
                   styles.progressFill,
-                  { width: `${Math.round(progressToRadius(distanceM, journey.radiusM) * 100)}%` },
+                  {
+                    backgroundColor: theme.accent,
+                    width: `${Math.round(progressToRadius(distanceM, journey.radiusM) * 100)}%`,
+                  },
                 ]}
               />
             </View>
@@ -292,7 +472,12 @@ export default function HomeScreen() {
 
       {!journey && interrupted ? (
         <Card style={styles.strip}>
-          <ThemedText type="small">{strings.home.resumed}</ThemedText>
+          <View style={styles.interruptedRow}>
+            <Mascot pose="alert" height={76} />
+            <ThemedText type="small" style={styles.interruptedText}>
+              {strings.home.resumed}
+            </ThemedText>
+          </View>
           <View style={styles.actions}>
             <AppButton
               label={strings.home.resume}
@@ -317,41 +502,65 @@ export default function HomeScreen() {
         </ThemedText>
       ) : null}
 
-      <SectionLabel
-        right={
-          <Pressable onPress={() => router.push('/places')}>
+      {places.length > 0 ? (
+        <SectionLabel
+          right={
+            <Pressable onPress={() => router.push('/places')}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {strings.home.seeAll}
+              </ThemedText>
+            </Pressable>
+          }>
+          {strings.home.savedHeading}
+        </SectionLabel>
+      ) : null}
+
+      {places.length > 0 ? (
+        <View style={styles.tiles}>
+          {places.slice(0, 3).map((place) => (
+              <Pressable
+                key={place.id}
+                accessibilityRole="button"
+                onPress={() => openSetup(place, place.defaultRadiusM)}
+                style={({ pressed }) => [
+                  styles.tile,
+                  { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+                  pressed && { opacity: 0.7 },
+                ]}>
+                <PlaceIcon
+                  category={place.category}
+                  icon={place.icon}
+                  color={place.color}
+                  size={40}
+                />
+                <ThemedText style={styles.tileName} numberOfLines={2}>
+                  {place.name}
+                </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                {strings.place.categories[place.category]} ·{' '}
+                {formatDistance(place.defaultRadiusM, unit)}
+              </ThemedText>
+            </Pressable>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
+            style={({ pressed }) => [
+              styles.tile,
+              styles.tileAdd,
+              { borderColor: theme.border },
+              pressed && { opacity: 0.7 },
+            ]}>
+            <View style={[styles.tileAddIcon, { backgroundColor: theme.accentSoft }]}>
+              <Icon name="add" size={20} color={theme.accent} />
+            </View>
+            <ThemedText style={styles.tileName}>{strings.home.addTile}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              {strings.home.seeAll}
+              {strings.home.addTileHint}
             </ThemedText>
           </Pressable>
-        }>
-        {strings.home.savedHeading}
-      </SectionLabel>
-
-      {places.length === 0 ? (
-        <Card style={styles.strip}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {strings.places.emptyBody}
-          </ThemedText>
-          <AppButton
-            label={strings.places.addPlace}
-            variant="secondary"
-            onPress={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
-          />
-        </Card>
-      ) : (
-        <View style={styles.savedList}>
-          {places.slice(0, 4).map((place) => (
-            <PlaceCard
-              key={place.id}
-              place={place}
-              unit={unit}
-              showCategory={false}
-              onPress={() => openSetup(place, place.defaultRadiusM)}
-            />
-          ))}
         </View>
-      )}
+      ) : null}
 
       {recent.length > 0 ? (
         <>
@@ -361,6 +570,9 @@ export default function HomeScreen() {
               key={`${item.name}-${item.latitude}`}
               onPress={() => openSetup(item, settings.default_radius_m)}
               style={({ pressed }) => [styles.recentRow, pressed && { opacity: 0.6 }]}>
+              <View style={[styles.recentIcon, { backgroundColor: theme.backgroundElement }]}>
+                <Icon name="time-outline" size={16} themeColor="textSecondary" />
+              </View>
               <ThemedText style={styles.recentName} numberOfLines={1}>
                 {item.name}
               </ThemedText>
@@ -393,26 +605,219 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  gear: {
+  greetingBlock: {
+    gap: Spacing.one,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    minHeight: 64,
+  },
+  greeting: {
+    flexShrink: 1,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '700',
+  },
+  nextCard: {
+    gap: Spacing.three,
+    paddingVertical: Spacing.three,
+  },
+
+  nextCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  nextCardName: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '700',
+  },
+  nextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingTop: Spacing.one,
+  },
+  nextText: {
+    flex: 1,
+    gap: 2,
+  },
+  nextName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  hero: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.three,
+  },
+  heroTitle: {
     fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  heroBody: {
+    textAlign: 'center',
+    paddingHorizontal: Spacing.three,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    alignSelf: 'stretch',
+    paddingTop: Spacing.one,
+  },
+  heroAction: {
+    flex: 1,
+  },
+  searchCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  statusLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingTop: Spacing.one,
+  },
+  statusText: {
+    flex: 1,
+  },
+  gearButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gear: {
+    fontSize: 20,
   },
   search: {
-    borderRadius: Radii.large,
-  },
-  searchInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.three,
     borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+  },
+  searchBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.medium,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBadgeGlyph: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
+  searchText: {
+    flex: 1,
+    gap: 2,
+  },
+  searchTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  searchChevron: {
+    fontSize: 26,
+    lineHeight: 28,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.five,
+    paddingHorizontal: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+  },
+  emptyGlyph: {
+    fontSize: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptyBody: {
+    textAlign: 'center',
+  },
+  emptyAction: {
+    alignSelf: 'stretch',
+    marginTop: Spacing.two,
+  },
+  tiles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  tile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    alignItems: 'flex-start',
+    gap: Spacing.two,
+    minHeight: 128,
+    padding: Spacing.two + 4,
+    borderRadius: Radii.large,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+  },
+  tileAdd: {
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    justifyContent: 'flex-start',
+  },
+  tileAddIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileName: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  readiness: {
+    gap: Spacing.one,
+    paddingVertical: Spacing.three,
   },
   strip: {
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
+  readinessHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingBottom: 2,
+  },
+  readinessTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  readinessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  readinessMessage: {
+    flex: 1,
+  },
   warningText: {
-    color: '#F5A623',
+    fontSize: 14,
   },
   journeyCard: {
     paddingVertical: Spacing.three,
@@ -424,7 +829,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
   },
+  destinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  interruptedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  interruptedText: {
+    flex: 1,
+  },
   destination: {
+    flex: 1,
     fontSize: 20,
     fontWeight: '700',
   },
@@ -451,7 +870,6 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#208AEF',
   },
   actions: {
     flexDirection: 'row',
@@ -460,15 +878,19 @@ const styles = StyleSheet.create({
   action: {
     flex: 1,
   },
-  savedList: {
-    gap: Spacing.half,
-  },
   recentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.two,
     paddingVertical: Spacing.two,
+  },
+  recentIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.small,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recentName: {
     flex: 1,

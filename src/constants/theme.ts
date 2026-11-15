@@ -1,52 +1,90 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens (Desig.md).
+ *
+ * Warm Daylight in light mode and a matching warm-night palette in dark mode,
+ * so the app reads as the same product whichever scheme the phone uses. Every
+ * colour lives here; screens must not hard-code hex values.
  */
 
 import '@/global.css';
 
-import { Platform } from 'react-native';
+import { Platform, type TextStyle } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-    accent: '#208AEF',
-    accentText: '#FFFFFF',
-    danger: '#C62A2F',
+    text: '#2F4152',
+    background: '#FAF7F0',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#EAE5DA',
+    textSecondary: '#6E8490',
+    accent: '#D99A43',
+    accentText: '#2B1B06',
+    accentSoft: '#F7ECD9',
+    accentBorder: '#E8D5B4',
+    danger: '#C0503B',
     warning: '#9A5B00',
-    success: '#1F7A4D',
-    border: '#D7D9DE',
+    success: '#3F7F6B',
+    border: '#E4DED2',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-    accent: '#3B9BF5',
-    accentText: '#04121F',
-    danger: '#FF6369',
-    warning: '#F5A623',
-    success: '#4CC38A',
-    border: '#2E3135',
+    text: '#F4EFE6',
+    background: '#0E141E',
+    backgroundElement: '#18202C',
+    backgroundSelected: '#232D3D',
+    textSecondary: '#A7B2C2',
+    accent: '#F0B45C',
+    accentText: '#241708',
+    accentSoft: '#2A2213',
+    accentBorder: '#4A3A1E',
+    danger: '#FF7A5E',
+    warning: '#F3B24A',
+    success: '#7FD1B9',
+    border: '#2B3648',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+/** Loaded in `src/app/_layout.tsx`; keep in sync with the `useFonts` map. */
+/** Soft tints for saved-place icon tiles; null keeps the neutral surface. */
+export const PlaceColors = [
+  '#F6D9B0',
+  '#CFE5DD',
+  '#F3C9BF',
+  '#D8DEEC',
+  '#EDE3D2',
+] as const;
+
+export const FontFamilies = {
+  regular: 'PlusJakartaSans_400Regular',
+  medium: 'PlusJakartaSans_500Medium',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+  extrabold: 'PlusJakartaSans_800ExtraBold',
+} as const;
+
+export function fontFamilyForWeight(weight: TextStyle['fontWeight'] | undefined): string {
+  switch (String(weight ?? '400')) {
+    case '500':
+      return FontFamilies.medium;
+    case '600':
+      return FontFamilies.semibold;
+    case '700':
+    case 'bold':
+      return FontFamilies.bold;
+    case '800':
+    case '900':
+      return FontFamilies.extrabold;
+    default:
+      return FontFamilies.regular;
+  }
+}
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -63,6 +101,7 @@ export const Fonts = Platform.select({
   },
 });
 
+/** 4-point scale from Desig.md §4. */
 export const Spacing = {
   half: 2,
   one: 4,

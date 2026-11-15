@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { AppButton, Card } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
 import { HoldButton } from '@/components/ui/hold-button';
+import { Mascot } from '@/components/ui/mascot';
 import { formatCopy, strings } from '@/constants/strings';
 import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { getDatabase } from '@/db/client';
@@ -204,7 +205,8 @@ export default function AlarmScreen() {
           </View>
         ) : (
           <View style={styles.center}>
-            <ThemedText style={styles.eyebrow}>⏰ {strings.alarm.headline.toUpperCase()}</ThemedText>
+            <Mascot pose="alert" height={104} />
+            <ThemedText style={styles.eyebrow}>{strings.alarm.headline.toUpperCase()}</ThemedText>
             <ThemedText style={styles.destination}>{journey.destinationName}</ThemedText>
             <ThemedText style={styles.distance}>
               {formatCopy(strings.alarm.away, { distance })}

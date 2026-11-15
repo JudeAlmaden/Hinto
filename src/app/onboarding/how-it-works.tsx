@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { OnboardingShell } from '@/components/onboarding-shell';
+import { Mascot } from '@/components/ui/mascot';
 import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 
@@ -23,6 +24,7 @@ export default function HowItWorksScreen() {
       primaryLabel={strings.onboarding.continue}
       onPrimary={() => router.push('/onboarding/location')}
       skipTo="/onboarding/ready">
+      <Mascot pose="navigator" height={120} />
       <View style={styles.steps}>
         {STEPS.map((step, index) => (
           <View key={step} style={styles.step}>
@@ -53,7 +55,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#208AEF',
+    backgroundColor: '#D99A43',
     alignItems: 'center',
     justifyContent: 'center',
   },

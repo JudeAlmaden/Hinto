@@ -453,9 +453,13 @@ export async function listRecentDestinations(
     place_id: string | null;
     last_used_at: number;
   }>(
+    // Only destinations that were actually travelled to count as recent. A
+    // prepared draft (journey setup opened and abandoned) or a cancelled row
+    // must never show up here — dropping a pin alone saves nothing.
     `SELECT destination_name AS name, destination_latitude AS latitude,
             destination_longitude AS longitude, place_id, MAX(created_at) AS last_used_at
      FROM journeys
+     WHERE status IN ('active', 'paused', 'triggered', 'completed', 'interrupted')
      GROUP BY destination_name, destination_latitude, destination_longitude
      ORDER BY last_used_at DESC
      LIMIT ?`,

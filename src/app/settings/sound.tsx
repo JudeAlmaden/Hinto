@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Icon } from '@/components/ui/icon';
 import { AppButton, Card, SectionLabel } from '@/components/ui/controls';
 import { Screen } from '@/components/ui/screen';
 import { strings } from '@/constants/strings';
@@ -96,7 +97,9 @@ export default function AlarmSoundScreen() {
               </ThemedText>
             </View>
             <ThemedText style={[styles.check, { color: theme.accent }]}>
-              {settings.alarm_sound_id === sound ? '✓' : ''}
+              {settings.alarm_sound_id === sound ? (
+                <Icon name="checkmark" size={18} themeColor="accent" />
+              ) : null}
             </ThemedText>
           </Pressable>
         ))}
@@ -120,7 +123,9 @@ export default function AlarmSoundScreen() {
             </ThemedText>
           </View>
           <ThemedText style={[styles.check, { color: theme.accent }]}>
-            {settings.alarm_sound_id === 'custom' ? '✓' : ''}
+            {settings.alarm_sound_id === 'custom' ? (
+              <Icon name="checkmark" size={18} themeColor="accent" />
+            ) : null}
           </ThemedText>
         </Pressable>
       ) : (

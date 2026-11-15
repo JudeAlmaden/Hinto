@@ -32,7 +32,7 @@ function taskOptions(policy: AdaptivePolicy): Location.LocationTaskOptions {
     foregroundService: {
       notificationTitle: strings.appName,
       notificationBody: strings.journey.tracking,
-      notificationColor: '#208AEF',
+      notificationColor: '#D99A43',
       killServiceOnDestroy: false,
     },
   };

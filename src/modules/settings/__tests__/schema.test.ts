@@ -14,6 +14,7 @@ describe('settings defaults (D5)', () => {
       default_radius_m: 1000,
       alarm_sound_id: 'classic',
       custom_alarm_uri: null,
+      appearance: 'light',
       vibration_enabled: true,
       repeat_until_dismissed: true,
       snooze_minutes: 5,

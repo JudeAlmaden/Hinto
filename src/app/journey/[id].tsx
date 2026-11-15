@@ -1,10 +1,12 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { MoreMenu } from '@/components/ui/more-menu';
 import { AppButton, Card } from '@/components/ui/controls';
+import { Mascot } from '@/components/ui/mascot';
 import { confirmAction } from '@/components/ui/confirm';
 import { Screen } from '@/components/ui/screen';
 import { StatusPill } from '@/components/ui/status-pill';
@@ -64,6 +66,19 @@ export default function ActiveJourneyScreen() {
   const distanceM = tracking.lastKnownDistanceM ?? journey.lastKnownDistanceM;
   const progress = progressToRadius(distanceM, journey.radiusM);
 
+  const endJourney = () =>
+    confirmAction({
+      title: strings.journey.endConfirmTitle,
+      body: strings.journey.endConfirmBody,
+      confirmLabel: strings.home.end,
+      destructive: true,
+      onConfirm: () =>
+        void run(async () => {
+          await endJourneySession(journey.id, 'completed');
+          router.replace({ pathname: '/history/[id]', params: { id: journey.id } });
+        }),
+    });
+
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
     try {
@@ -79,13 +94,35 @@ export default function ActiveJourneyScreen() {
       title={strings.journey.title}
       back
       right={
-        <Pressable
-          onPress={() =>
-            router.push({ pathname: '/journey/[id]/options', params: { id: journey.id } })
-          }
-          hitSlop={12}>
-          <ThemedText style={styles.gear}>⚙</ThemedText>
-        </Pressable>
+        <MoreMenu
+          items={[
+            {
+              label: strings.journey.options,
+              icon: 'options-outline',
+              onPress: () =>
+                router.push({ pathname: '/journey/[id]/options', params: { id: journey.id } }),
+            },
+            {
+              label: strings.place.saveDestination,
+              icon: 'bookmark-outline',
+              onPress: () =>
+                router.push({
+                  pathname: '/place/new',
+                  params: {
+                    name: journey.destinationName,
+                    latitude: journey.destinationLatitude.toFixed(6),
+                    longitude: journey.destinationLongitude.toFixed(6),
+                  },
+                }),
+            },
+            {
+              label: strings.home.end,
+              icon: 'stop-circle-outline',
+              destructive: true,
+              onPress: endJourney,
+            },
+          ]}
+        />
       }
       footer={
         <View style={styles.actions}>
@@ -106,19 +143,7 @@ export default function ActiveJourneyScreen() {
             label={strings.home.end}
             variant="ghost"
             disabled={busy}
-            onPress={() =>
-              confirmAction({
-                title: strings.journey.endConfirmTitle,
-                body: strings.journey.endConfirmBody,
-                confirmLabel: strings.home.end,
-                destructive: true,
-                onConfirm: () =>
-                  void run(async () => {
-                    await endJourneySession(journey.id, 'completed');
-                    router.replace({ pathname: '/history/[id]', params: { id: journey.id } });
-                  }),
-              })
-            }
+            onPress={endJourney}
             style={styles.action}
           />
         </View>
@@ -173,6 +198,15 @@ export default function ActiveJourneyScreen() {
         </ThemedText>
       ) : null}
 
+      <View style={styles.mascotBlock}>
+        <Mascot pose="onTheGo" height={120} />
+        <ThemedText type="small" themeColor="textSecondary" style={styles.mascotNote}>
+          {tracking.lastSampleAt === null
+            ? strings.journey.mascotWaiting
+            : strings.journey.mascotTracking}
+        </ThemedText>
+      </View>
+
       <ThemedText type="small" themeColor="textSecondary">
         {strings.journey.disclaimer}
       </ThemedText>
@@ -188,6 +222,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one,
     paddingTop: Spacing.three,
+  },
+  mascotBlock: {
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingTop: Spacing.four,
+  },
+  mascotNote: {
+    textAlign: 'center',
+    paddingHorizontal: Spacing.four,
   },
   destination: {
     fontSize: 24,
@@ -220,7 +263,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#208AEF',
+    backgroundColor: '#D99A43',
   },
   progressLabels: {
     flexDirection: 'row',

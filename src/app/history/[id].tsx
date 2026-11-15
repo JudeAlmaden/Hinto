@@ -2,8 +2,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { AppButton, NavRow } from '@/components/ui/controls';
+import { Card, NavRow } from '@/components/ui/controls';
+import { Mascot } from '@/components/ui/mascot';
 import { confirmAction } from '@/components/ui/confirm';
+import { MoreMenu } from '@/components/ui/more-menu';
 import { Screen } from '@/components/ui/screen';
 import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
@@ -64,32 +66,48 @@ export default function JourneyHistoryScreen() {
             }`
           : strings.history.notTriggered;
 
+  const confirmDelete = () =>
+    confirmAction({
+      title: strings.places.title,
+      body: strings.history.clearBody,
+      confirmLabel: strings.common.delete,
+      destructive: true,
+      onConfirm: () => {
+        void (async () => {
+          const db = await getDatabase();
+          await deleteJourney(db, journey.id);
+          router.back();
+        })();
+      },
+    });
+
   return (
     <Screen
       title={strings.history.detailTitle}
       subtitle={journey.destinationName}
       back
-      footer={
-        <AppButton
-          label={strings.common.delete}
-          variant="ghost"
-          onPress={() =>
-            confirmAction({
-              title: strings.places.title,
-              body: strings.history.clearBody,
-              confirmLabel: strings.common.delete,
+      right={
+        <MoreMenu
+          items={[
+            {
+              label: strings.common.delete,
+              icon: 'trash-outline',
               destructive: true,
-              onConfirm: () => {
-                void (async () => {
-                  const db = await getDatabase();
-                  await deleteJourney(db, journey.id);
-                  router.back();
-                })();
-              },
-            })
-          }
+              onPress: confirmDelete,
+            },
+          ]}
         />
       }>
+      {journey.status === 'completed' ? (
+        <Card style={styles.celebration}>
+          <Mascot pose="ready" height={128} />
+          <ThemedText style={styles.celebrationTitle}>{strings.history.arrivedTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.celebrationBody}>
+            {strings.history.arrivedBody}
+          </ThemedText>
+        </Card>
+      ) : null}
+
       <View>
         <NavRow label={strings.history.outcome} value={outcome} />
         <NavRow label={strings.history.startedAt} value={formatDateTime(journey.startedAt ?? journey.createdAt)} />
@@ -123,6 +141,18 @@ export default function JourneyHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  celebration: {
+    alignItems: 'center',
+    paddingVertical: Spacing.three,
+    gap: Spacing.one,
+  },
+  celebrationTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  celebrationBody: {
+    textAlign: 'center',
+  },
   note: {
     paddingTop: Spacing.two,
   },
