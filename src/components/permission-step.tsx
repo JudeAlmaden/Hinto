@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { OnboardingShell } from '@/components/onboarding-shell';
+import { Mascot } from '@/components/ui/mascot';
 import { strings } from '@/constants/strings';
 import type { PermissionKey, PermissionState } from '@/modules/permissions';
 import {
@@ -33,11 +35,35 @@ export function PermissionStep({
   onContinue: () => void;
 }) {
   const [state, setState] = useState<PermissionState | null>(null);
+  const appState = useRef(AppState.currentState);
 
-  useEffect(() => {
+  const refresh = () => {
     void readPermissions()
-      .then((permissions) => setState(permissions[permission]))
+      .then((permissions) => {
+        const next = permissions[permission];
+        setState(next);
+        // Auto-advance if user granted the permission in Settings
+        if (next.status === 'granted') onContinue();
+      })
       .catch(() => setState(null));
+  };
+
+  // Initial read
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission]);
+
+  // Re-read when app returns to foreground (user came back from Settings)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (appState.current?.match(/inactive|background/) && nextState === 'active') {
+        refresh();
+      }
+      appState.current = nextState;
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permission]);
 
   const denied = state?.status === 'denied';
@@ -55,9 +81,20 @@ export function PermissionStep({
     if (next.status === 'granted') onContinue();
   };
 
+  const heroMascot = denied ? (
+    <Mascot expression="worried" height={110} />
+  ) : permission === 'foregroundLocation' ? (
+    <Mascot pose="navigator" height={130} />
+  ) : permission === 'backgroundLocation' ? (
+    <Mascot pose="onTheGo" height={130} />
+  ) : (
+    <Mascot pose="alert" height={130} />
+  );
+
   return (
     <OnboardingShell
       step={step}
+      hero={heroMascot}
       title={denied ? deniedTitle : title}
       body={denied ? deniedBody : body}
       note={denied ? strings.permissions.fixInSettings : note}
@@ -68,6 +105,7 @@ export function PermissionStep({
       }}
       secondaryLabel={denied ? strings.permissions.skipForNow : strings.permissions.notNow}
       onSecondary={onContinue}
+      skipTo="/onboarding/ready"
     />
   );
 }

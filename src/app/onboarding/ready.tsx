@@ -83,11 +83,11 @@ export default function ReadyOnboardingScreen() {
   return (
     <OnboardingShell
       step={8}
+      hero={<Mascot pose="ready" height={130} />}
       title={strings.onboarding.ready}
       body={strings.onboarding.readyBody}
       primaryLabel={strings.onboarding.startUsing}
       onPrimary={() => void finish()}>
-      <Mascot pose="ready" height={140} />
       <View style={styles.list}>
         <ReadinessChecklist items={items} />
       </View>

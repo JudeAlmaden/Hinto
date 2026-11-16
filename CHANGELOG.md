@@ -5,6 +5,20 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-16
+
+### Changed
+- Onboarding shell redesigned with centered hero slots, warm halo backdrops, natural content hierarchy (title and body above cards), and modern active pill progress indicators.
+- Added contextual mascot poses across permission steps (navigator for location, on-the-go for background, alert for notifications, worried for denied states).
+
+### Fixed
+- Fixed reverse visual hierarchy on battery onboarding where the device detection card was rendering above the title.
+- Cleaned stray artifact pixels along image top borders across mascot poses and expressions, eliminating black flecks above the mascot's hair.
+
+### Technical
+- Modified: src/components/onboarding-shell.tsx, src/components/permission-step.tsx, src/app/onboarding/*.tsx, assets/mascot/**/*, package.json, app.config.ts
+- Tests: 143 passing — lint/typecheck clean
+
 ## [0.6.0] - 2026-11-16
 
 ### Added

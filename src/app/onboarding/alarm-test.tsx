@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { OnboardingShell } from '@/components/onboarding-shell';
 import { AppButton } from '@/components/ui/controls';
+import { Mascot } from '@/components/ui/mascot';
 import { strings } from '@/constants/strings';
 import { useSettings } from '@/hooks/use-settings';
 import { configureAlarmAudio, startAlarmLoop, stopAlarmLoop } from '@/modules/alarm/player';
@@ -40,16 +42,26 @@ export default function AlarmTestOnboardingScreen() {
   return (
     <OnboardingShell
       step={7}
+      hero={<Mascot pose="alert" height={130} />}
       title={strings.onboarding.alarmTitle}
       body={strings.onboarding.alarmBody}
       note={strings.alarmTest.limitation}
       primaryLabel={strings.onboarding.continue}
       onPrimary={() => router.push('/onboarding/ready')}
       skipTo="/onboarding/ready">
-      <AppButton
-        label={playing ? strings.alarmTest.stop : strings.alarmTest.play}
-        onPress={toggle}
-      />
+      <View style={styles.buttonWrapper}>
+        <AppButton
+          label={playing ? strings.alarmTest.stop : strings.alarmTest.play}
+          variant={playing ? 'danger' : 'secondary'}
+          onPress={toggle}
+        />
+      </View>
     </OnboardingShell>
   );
 }
+
+const styles = StyleSheet.create({
+  buttonWrapper: {
+    width: '100%',
+  },
+});
