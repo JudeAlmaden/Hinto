@@ -1,7 +1,10 @@
+import { forwardRef, useEffect, useImperativeHandle, type Ref } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppButton, Chip, TextField, ToggleRow } from '@/components/ui/controls';
+import { Icon } from '@/components/ui/icon';
+import { Row } from '@/components/ui/layout';
 import { ChipRow } from '@/components/ui/chip-row';
 import { ColorSwatches } from '@/components/ui/color-swatches';
 import { FormSection } from '@/components/ui/form-section';
@@ -16,13 +19,17 @@ import { PLACE_CATEGORIES } from '@/modules/places';
 import { usePlaceForm } from '@/modules/places/use-place-form';
 import { formatCoordinates, formatDistance } from '@/utils/format';
 
-export function PlaceForm({
-  initial,
-  initialCoordinates,
-  initialName,
-  onSaved,
-  secondaryAction,
-}: {
+export interface PlaceFormHandle {
+  save: () => void;
+}
+
+export interface PlaceFormStatus {
+  canSave: boolean;
+  saving: boolean;
+  dirty: boolean;
+}
+
+interface PlaceFormProps {
   initial?: Place;
   /** Seeds the coordinate fields, e.g. a pin dropped on the map. */
   initialCoordinates?: { latitude: number; longitude: number };
@@ -31,10 +38,25 @@ export function PlaceForm({
   onSaved: (placeId: string) => void;
   /** Optional action paired with Save, e.g. Start journey. */
   secondaryAction?: { label: string; onPress: () => void };
-}) {
+  /** Parent renders the actions (sticky footer) instead of the form. */
+  hideActions?: boolean;
+  onStateChange?: (state: PlaceFormStatus) => void;
+}
+
+function PlaceFormImpl(
+  { initial, initialCoordinates, initialName, onSaved, secondaryAction, hideActions, onStateChange }: PlaceFormProps,
+  ref: Ref<PlaceFormHandle>,
+) {
+  const form = usePlaceForm({ initial, initialCoordinates, initialName, onSaved });
+
+  useImperativeHandle(ref, () => ({ save: form.save }), [form.save]);
+
+  useEffect(() => {
+    onStateChange?.({ canSave: form.canSave, saving: form.saving, dirty: form.dirty });
+  }, [form.canSave, form.saving, form.dirty, onStateChange]);
+
   const theme = useTheme();
   const { settings } = useSettings();
-  const form = usePlaceForm({ initial, initialCoordinates, initialName, onSaved });
 
   return (
     <View style={styles.container}>
@@ -92,19 +114,28 @@ export function PlaceForm({
         last
       />
 
-      <AppButton
-        label={
-          form.showCoordinates
-            ? strings.place.hideCoordinates
-            : strings.place.advancedCoordinates
-        }
-        variant="ghost"
+      <Pressable
+        accessibilityRole="button"
         onPress={form.toggleCoordinates}
-      />
+        style={({ pressed }) => [styles.coordsToggle, pressed && { opacity: 0.6 }]}>
+        <ThemedText style={styles.coordsToggleLabel}>{strings.place.advancedCoordinates}</ThemedText>
+        {form.showCoordinates ? null : (
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {form.coordinatesValid
+              ? formatCoordinates(form.parsedLatitude, form.parsedLongitude)
+              : strings.place.location}
+          </ThemedText>
+        )}
+        <Icon
+          name={form.showCoordinates ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          themeColor="textSecondary"
+        />
+      </Pressable>
 
       {form.showCoordinates ? (
         <>
-          <View style={styles.coordinatesHead}>
+          <Row between>
             <ThemedText type="small" themeColor="textSecondary">
               {strings.place.location}
             </ThemedText>
@@ -113,8 +144,8 @@ export function PlaceForm({
                 {form.locating ? strings.common.loading : strings.place.useCurrentLocation}
               </ThemedText>
             </Pressable>
-          </View>
-          <View style={styles.coordinates}>
+          </Row>
+          <Row gap="two">
             <View style={styles.coordinateField}>
               <TextField
                 label={strings.destination.latitude}
@@ -133,7 +164,7 @@ export function PlaceForm({
                 autoCorrect={false}
               />
             </View>
-          </View>
+          </Row>
         </>
       ) : null}
 
@@ -143,43 +174,43 @@ export function PlaceForm({
         </ThemedText>
       ) : null}
 
-      <View style={styles.actionsRow}>
-        <AppButton
-          label={strings.place.save}
-          onPress={form.save}
-          disabled={form.saving || !form.canSave}
-          loading={form.saving}
-          style={styles.action}
-        />
-        {secondaryAction ? (
+      {hideActions ? null : (
+        <Row gap="two">
           <AppButton
-            label={secondaryAction.label}
-            variant="secondary"
-            onPress={secondaryAction.onPress}
+            label={strings.place.save}
+            onPress={form.save}
+            disabled={form.saving || !form.canSave}
+            loading={form.saving}
             style={styles.action}
           />
-        ) : null}
-      </View>
+          {secondaryAction ? (
+            <AppButton
+              label={secondaryAction.label}
+              variant="secondary"
+              onPress={secondaryAction.onPress}
+              style={styles.action}
+            />
+          ) : null}
+        </Row>
+      )}
     </View>
   );
 }
+
+export const PlaceForm = forwardRef(PlaceFormImpl);
 
 const styles = StyleSheet.create({
   container: {
     gap: Spacing.three,
   },
-  coordinates: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  coordinatesHead: {
+  coordsToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  actionsRow: {
-    flexDirection: 'row',
     gap: Spacing.two,
+    paddingVertical: Spacing.two,
+  },
+  coordsToggleLabel: {
+    fontSize: 15,
   },
   action: {
     flex: 1,

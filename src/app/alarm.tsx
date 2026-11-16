@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppButton, Card } from '@/components/ui/controls';
+import { Stack as VStack } from '@/components/ui/layout';
 import { confirmAction } from '@/components/ui/confirm';
 import { HoldButton } from '@/components/ui/hold-button';
 import { Mascot } from '@/components/ui/mascot';
@@ -171,7 +172,7 @@ export default function AlarmScreen() {
       <Stack.Screen options={{ gestureEnabled: false, headerShown: false }} />
       <SafeAreaView style={styles.safe}>
         {!journey ? (
-          <View style={styles.center}>
+          <VStack center flex gap="three">
             <ThemedText style={styles.headline}>{strings.alarm.headline}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {strings.alarm.noJourney}
@@ -181,9 +182,9 @@ export default function AlarmScreen() {
               variant="secondary"
               onPress={() => router.replace('/')}
             />
-          </View>
+          </VStack>
         ) : snoozed ? (
-          <View style={styles.center}>
+          <VStack center flex gap="three">
             <ThemedText style={styles.eyebrow}>{strings.alarm.headline}</ThemedText>
             <ThemedText style={styles.destination}>{journey.destinationName}</ThemedText>
             <Card style={styles.snoozeCard}>
@@ -202,9 +203,9 @@ export default function AlarmScreen() {
             <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
               {strings.alarm.limitation}
             </ThemedText>
-          </View>
+          </VStack>
         ) : (
-          <View style={styles.center}>
+          <VStack center flex gap="three">
             <Mascot pose="alert" height={104} />
             <ThemedText style={styles.eyebrow}>{strings.alarm.headline.toUpperCase()}</ThemedText>
             <ThemedText style={styles.destination}>{journey.destinationName}</ThemedText>
@@ -216,7 +217,7 @@ export default function AlarmScreen() {
               <View style={styles.progressFill} />
             </View>
 
-            <View style={styles.actions}>
+            <VStack gap="two" style={styles.actions}>
               {settings.require_hold_to_dismiss ? (
                 <HoldButton label={strings.alarm.imAwake} onConfirm={() => void finish()} />
               ) : (
@@ -228,12 +229,11 @@ export default function AlarmScreen() {
                 onPress={() => void doSnooze()}
               />
               <AppButton label={strings.alarm.dismiss} variant="ghost" onPress={doDismiss} />
-            </View>
-
+            </VStack>
             <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
               {strings.alarm.limitation}
             </ThemedText>
-          </View>
+          </VStack>
         )}
       </SafeAreaView>
     </ThemedView>
@@ -250,12 +250,6 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
     width: '100%',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.three,
   },
   eyebrow: {
     fontSize: 14,
@@ -290,7 +284,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     alignSelf: 'stretch',
-    gap: Spacing.two,
   },
   snoozeCard: {
     alignSelf: 'stretch',

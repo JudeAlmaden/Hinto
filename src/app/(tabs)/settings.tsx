@@ -5,12 +5,12 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppButton, Card, NavRow, SectionLabel, ToggleRow } from '@/components/ui/controls';
+import { Row, Stack } from '@/components/ui/layout';
 import { confirmAction } from '@/components/ui/confirm';
 import { ResetStorageDialog } from '@/components/ui/reset-dialog';
 import { Screen } from '@/components/ui/screen';
 import { formatCopy, strings } from '@/constants/strings';
 import { RADIUS_PRESETS_M } from '@/constants/alarms';
-import { Spacing } from '@/constants/theme';
 import { getDatabase, resetStorage, retryStorage } from '@/db/client';
 import { useSettings } from '@/hooks/use-settings';
 import { useStorage } from '@/hooks/use-storage';
@@ -90,12 +90,13 @@ export default function SettingsScreen() {
   return (
     <Screen title={strings.settings.title} tabInset>
       {storage.state === 'unavailable' ? (
-        <Card style={styles.storageCard}>
+        <Card>
+          <Stack gap="two" py="three">
           <ThemedText type="small">{strings.diagnostics.storageUnavailable}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {storage.error ?? ''}
           </ThemedText>
-          <View style={styles.storageActions}>
+          <Row gap="two">
             <AppButton
               label={strings.common.retry}
               variant="secondary"
@@ -108,7 +109,8 @@ export default function SettingsScreen() {
               onPress={() => setResetVisible(true)}
               style={styles.storageAction}
             />
-          </View>
+          </Row>
+          </Stack>
         </Card>
       ) : null}
 
@@ -245,11 +247,13 @@ export default function SettingsScreen() {
 
       <Pressable
         onPress={() => router.push('/onboarding/welcome')}
-        style={({ pressed }) => [styles.onboarding, pressed && { opacity: 0.6 }]}>
-        <ThemedText type="small">{strings.settings.replayOnboarding}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {strings.settings.replay} ›
-        </ThemedText>
+        style={({ pressed }) => (pressed ? { opacity: 0.6 } : undefined)}>
+        <Row between py="three">
+          <ThemedText type="small">{strings.settings.replayOnboarding}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {strings.settings.replay} ›
+          </ThemedText>
+        </Row>
       </Pressable>
 
       <ThemedText type="small" themeColor="textSecondary" style={styles.version}>
@@ -269,22 +273,8 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  storageCard: {
-    paddingVertical: Spacing.three,
-    gap: Spacing.two,
-  },
-  storageActions: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
   storageAction: {
     flex: 1,
-  },
-  onboarding: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.three,
   },
   version: {
     textAlign: 'center',

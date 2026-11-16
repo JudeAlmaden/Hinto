@@ -3,8 +3,14 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { JourneyStatusCard } from '@/components/home/journey-status-card';
+import { NextStopCard } from '@/components/home/next-stop-card';
+import { RecentList } from '@/components/home/recent-list';
+import { ReadinessCard } from '@/components/home/readiness-card';
+import { SavedPlaces } from '@/components/home/saved-places';
 import { ThemedText } from '@/components/themed-text';
 import { Icon } from '@/components/ui/icon';
+import { Row, Stack } from '@/components/ui/layout';
 import { Mascot } from '@/components/ui/mascot';
 import { useResolvedScheme } from '@/hooks/use-appearance';
 import { useSettings } from '@/hooks/use-settings';
@@ -12,10 +18,8 @@ import { useAppearance } from '@/modules/settings/appearance';
 import { AppButton, Card, SectionLabel } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
 import { ResetStorageDialog } from '@/components/ui/reset-dialog';
-import { PlaceIcon } from '@/components/ui/place';
 import { Screen } from '@/components/ui/screen';
-import { StatusPill } from '@/components/ui/status-pill';
-import { formatCopy, strings } from '@/constants/strings';
+import { strings } from '@/constants/strings';
 import { Radii, Spacing } from '@/constants/theme';
 import { getDatabase, resetStorage, retryStorage } from '@/db/client';
 import { haversineMeters } from '@/modules/geofence/distance';
@@ -31,9 +35,7 @@ import { endJourneySession, pauseJourneySession, resumeJourneySession } from '@/
 import type { ReadinessIssue } from '@/modules/permissions';
 import { getReadinessIssues } from '@/modules/permissions/service';
 import type { RecentDestination } from '@/modules/places';
-import { formatDistance, formatAge } from '@/utils/format';
 import { journeySetupParams } from '@/utils/navigation';
-import { progressToRadius } from '@/utils/progress';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -181,21 +183,21 @@ export default function HomeScreen() {
       logo
       tabInset
       headerContent={
-        <View style={styles.greetingBlock}>
-          <View style={styles.greetingRow}>
+        <Stack gap="one">
+          <Row between gap="two" style={styles.greetingRow}>
             <ThemedText style={styles.greeting}>{greeting}</ThemedText>
             {statusNote ? null : <Mascot pose="navigator" height={64} />}
-          </View>
+          </Row>
 
           {statusNote ? (
-            <View style={styles.statusLine}>
+            <Row gap="two" pt="one">
               <Mascot pose="alert" height={36} />
               <ThemedText type="small" themeColor="textSecondary" style={styles.statusText}>
                 {statusNote}
               </ThemedText>
-            </View>
+            </Row>
           ) : null}
-        </View>
+        </Stack>
       }
       right={
         <Pressable
@@ -208,45 +210,26 @@ export default function HomeScreen() {
         </Pressable>
       }>
       {nextPlace && !journey ? (
-        <Card style={[styles.nextCard, { borderColor: theme.accentBorder }]}>
-          <View style={styles.nextCardRow}>
-            <PlaceIcon
-              category={nextPlace.category}
-              icon={nextPlace.icon}
-              color={nextPlace.color}
-              size={56}
-            />
-            <View style={styles.nextText}>
-              <ThemedText style={styles.nextCardName} numberOfLines={2}>
-                {nextPlace.name}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-                {strings.place.categories[nextPlace.category]}
-                {nextDistanceM !== null
-                  ? ` · ${formatDistance(nextDistanceM, unit)} ${strings.journey.toGo}`
-                  : ` · ${strings.home.alarmAt} ${formatDistance(nextPlace.defaultRadiusM, unit)}`}
-              </ThemedText>
-            </View>
-          </View>
-          <AppButton
-            label={strings.home.startJourney}
-            onPress={() => openSetup(nextPlace, nextPlace.defaultRadiusM)}
-          />
-        </Card>
+        <NextStopCard
+          place={nextPlace}
+          distanceM={nextDistanceM}
+          unit={unit}
+          onStart={() => openSetup(nextPlace, nextPlace.defaultRadiusM)}
+        />
       ) : null}
 
       {places.length === 0 && !journey ? (
-        <View
-          style={[
-            styles.hero,
-            { backgroundColor: theme.accentSoft, borderColor: theme.accentBorder },
-          ]}>
+        <Stack
+          center
+          gap="two"
+          p="three"
+          style={[styles.heroFrame, { backgroundColor: theme.accentSoft, borderColor: theme.accentBorder }]}>
           <Mascot pose="friendly" height={152} />
           <ThemedText style={styles.heroTitle}>{strings.home.guideEmptyTitle}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary" style={styles.heroBody}>
             {strings.home.guideEmptyBody}
           </ThemedText>
-          <View style={styles.heroActions}>
+          <Row gap="two" pt="one" style={styles.heroActions}>
             <AppButton
               label={strings.places.addPlace}
               onPress={() =>
@@ -262,49 +245,53 @@ export default function HomeScreen() {
               }
               style={styles.heroAction}
             />
-          </View>
-        </View>
+          </Row>
+        </Stack>
       ) : journey ? (
         <Pressable
           accessibilityRole="search"
           onPress={() => router.push('/destination/search')}
           style={({ pressed }) => [
-            styles.searchCompact,
+            styles.searchCompactFrame,
             { backgroundColor: theme.backgroundElement, borderColor: theme.border },
             pressed && { opacity: 0.85 },
           ]}>
-          <Icon name="search" size={16} color={theme.accent} />
-          <ThemedText type="small" style={{ flex: 1, color: theme.textSecondary }}>
-            {strings.home.searchPlaceholder}
-          </ThemedText>
-          <Icon name="chevron-forward" size={16} themeColor="textSecondary" />
+          <Row gap="two" px="three">
+            <Icon name="search" size={16} color={theme.accent} />
+            <ThemedText type="small" style={[styles.searchText, { color: theme.textSecondary }]}>
+              {strings.home.searchPlaceholder}
+            </ThemedText>
+            <Icon name="chevron-forward" size={16} themeColor="textSecondary" />
+          </Row>
         </Pressable>
       ) : (
         <Pressable
           accessibilityRole="search"
           onPress={() => router.push('/destination/search')}
           style={({ pressed }) => [
-            styles.search,
+            styles.searchFrame,
             { backgroundColor: theme.accentSoft, borderColor: theme.accentBorder },
             pressed && { opacity: 0.85 },
           ]}>
-          <View style={[styles.searchBadge, { backgroundColor: theme.accent }]}>
-            <Icon name="search" size={18} color={theme.accentText} />
-          </View>
-          <View style={styles.searchText}>
-            <ThemedText style={styles.searchTitle}>{strings.home.searchPlaceholder}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {strings.home.searchHint}
-            </ThemedText>
-          </View>
-          <Icon name="chevron-forward" size={22} color={theme.accent} />
+          <Row gap="two" px="three" py="three">
+            <View style={[styles.searchBadge, { backgroundColor: theme.accent }]}>
+              <Icon name="search" size={18} color={theme.accentText} />
+            </View>
+            <Stack gap="half" flex>
+              <ThemedText style={styles.searchTitle}>{strings.home.searchPlaceholder}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {strings.home.searchHint}
+              </ThemedText>
+            </Stack>
+            <Icon name="chevron-forward" size={22} color={theme.accent} />
+          </Row>
         </Pressable>
       )}
 
       {storage.state === 'unavailable' ? (
         <Card style={styles.strip}>
           <ThemedText type="small">{strings.diagnostics.storageUnavailable}</ThemedText>
-          <View style={styles.actions}>
+          <Row gap="two">
             <AppButton
               label={strings.common.retry}
               variant="secondary"
@@ -317,168 +304,56 @@ export default function HomeScreen() {
               onPress={() => setResetVisible(true)}
               style={styles.action}
             />
-          </View>
+          </Row>
         </Card>
       ) : null}
 
       {!journey ? (
-        <Card style={styles.readiness}>
-          <View style={styles.readinessHead}>
-            <Icon
-              name={issues.length === 0 ? 'checkmark-circle' : 'alert-circle'}
-              size={18}
-              color={issues.length === 0 ? theme.success : theme.warning}
-            />
-            <ThemedText style={styles.readinessTitle}>
-              {issues.length === 0 ? strings.home.readinessReady : strings.home.readinessNeeds}
-            </ThemedText>
-          </View>
-          {issues.length === 0 && !tracking.restrictionSuspected ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              {strings.home.readinessBody}
-            </ThemedText>
-          ) : null}
-          {issues.slice(0, 3).map((issue) => (
-            <Pressable
-              key={issue.key}
-              accessibilityRole="button"
-              onPress={() => router.push('/settings/permissions')}
-              style={({ pressed }) => [styles.readinessRow, pressed && { opacity: 0.6 }]}>
-              <ThemedText
-                type="small"
-                style={[
-                  styles.readinessMessage,
-                  { color: issue.severity === 'blocking' ? theme.text : theme.textSecondary },
-                ]}>
-                {issue.key === 'locationServices' ? strings.home.locationsOff : issue.message}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.accent }}>
-                {strings.home.fix}
-              </ThemedText>
-            </Pressable>
-          ))}
-          {tracking.restrictionSuspected ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/settings/permissions')}
-              style={({ pressed }) => [styles.readinessRow, pressed && { opacity: 0.6 }]}>
-              <ThemedText type="small" style={[styles.readinessMessage, { color: theme.warning }]}>
-                {strings.home.batteryHint}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.accent }}>
-                {strings.home.fix}
-              </ThemedText>
-            </Pressable>
-          ) : null}
-        </Card>
+        <ReadinessCard
+          issues={issues}
+          restrictionSuspected={tracking.restrictionSuspected}
+          onFix={() => router.push('/settings/permissions')}
+        />
       ) : null}
 
       {journey && journey.status !== 'interrupted' ? (
-        <Card
-          style={[
-            styles.journeyCard,
-            {
-              backgroundColor: theme.accentSoft,
-              borderColor: theme.accentBorder,
-              borderWidth: StyleSheet.hairlineWidth * 2,
-            },
-          ]}>
-          <View style={styles.journeyHeader}>
-            <StatusPill status={tracking.status} />
-            <ThemedText type="small" themeColor="textSecondary">
-              {strings.journey.alertAt} {formatDistance(journey.radiusM, unit)}
-            </ThemedText>
-          </View>
-
-          <ThemedText style={styles.destination} numberOfLines={2}>
-            {journey.destinationName}
-          </ThemedText>
-
-          <View style={styles.stats}>
-            <View style={styles.stat}>
-              <ThemedText style={[styles.statValue, { color: theme.accent }]}>
-                {formatDistance(distanceM, unit)}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {strings.journey.toGo}
-              </ThemedText>
-            </View>
-            <View style={styles.stat}>
-              <ThemedText style={styles.statValue}>
-                {tracking.accuracyM === null ? strings.common.notAvailable : `±${Math.round(tracking.accuracyM)} m`}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {strings.journey.accuracy}
-              </ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.progressBlock}>
-            <View style={[styles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: theme.accent,
-                    width: `${Math.round(progressToRadius(distanceM, journey.radiusM) * 100)}%`,
-                  },
-                ]}
-              />
-            </View>
-            <ThemedText type="small" themeColor="textSecondary">
-              {formatCopy(strings.journey.lastSeen, { age: formatAge(tracking.lastSampleAt) })}
-            </ThemedText>
-          </View>
-
-          <View style={styles.actions}>
-            <AppButton
-              label={journey.status === 'paused' ? strings.home.resume : strings.home.pause}
-              variant="secondary"
-              disabled={busy}
-              onPress={() =>
-                run(() =>
-                  journey.status === 'paused'
-                    ? resumeJourneySession(journey.id)
-                    : pauseJourneySession(journey.id),
-                )
-              }
-              style={styles.action}
-            />
-            <AppButton
-              label={strings.home.end}
-              variant="ghost"
-              disabled={busy}
-              onPress={() =>
-                confirmAction({
-                  title: strings.journey.endConfirmTitle,
-                  body: strings.journey.endConfirmBody,
-                  confirmLabel: strings.home.end,
-                  destructive: true,
-                  onConfirm: () => void run(() => endJourneySession(journey.id, 'completed')),
-                })
-              }
-              style={styles.action}
-            />
-          </View>
-
-          <Pressable
-            onPress={() => router.push({ pathname: '/journey/[id]', params: { id: journey.id } })}>
-            <ThemedText type="small" themeColor="textSecondary">
-              {strings.journey.title} ›
-            </ThemedText>
-          </Pressable>
-        </Card>
+        <JourneyStatusCard
+          journey={journey}
+          status={tracking.status}
+          accuracyM={tracking.accuracyM}
+          lastSampleAt={tracking.lastSampleAt}
+          distanceM={distanceM}
+          unit={unit}
+          busy={busy}
+          onPauseResume={() =>
+            run(() =>
+              journey.status === 'paused'
+                ? resumeJourneySession(journey.id)
+                : pauseJourneySession(journey.id),
+            )
+          }
+          onEnd={() =>
+            confirmAction({
+              title: strings.journey.endConfirmTitle,
+              body: strings.journey.endConfirmBody,
+              confirmLabel: strings.home.end,
+              destructive: true,
+              onConfirm: () => void run(() => endJourneySession(journey.id, 'completed')),
+            })
+          }
+          onOpen={() => router.push({ pathname: '/journey/[id]', params: { id: journey.id } })}
+        />
       ) : null}
 
       {!journey && interrupted ? (
         <Card style={styles.strip}>
-          <View style={styles.interruptedRow}>
+          <Row gap="two">
             <Mascot pose="alert" height={76} />
             <ThemedText type="small" style={styles.interruptedText}>
               {strings.home.resumed}
             </ThemedText>
-          </View>
-          <View style={styles.actions}>
+          </Row>
+          <Row gap="two">
             <AppButton
               label={strings.home.resume}
               onPress={() => run(() => resumeJourneySession(interrupted.id))}
@@ -492,7 +367,7 @@ export default function HomeScreen() {
               disabled={busy}
               style={styles.action}
             />
-          </View>
+          </Row>
         </Card>
       ) : null}
 
@@ -516,73 +391,15 @@ export default function HomeScreen() {
       ) : null}
 
       {places.length > 0 ? (
-        <View style={styles.tiles}>
-          {places.slice(0, 3).map((place) => (
-              <Pressable
-                key={place.id}
-                accessibilityRole="button"
-                onPress={() => openSetup(place, place.defaultRadiusM)}
-                style={({ pressed }) => [
-                  styles.tile,
-                  { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-                  pressed && { opacity: 0.7 },
-                ]}>
-                <PlaceIcon
-                  category={place.category}
-                  icon={place.icon}
-                  color={place.color}
-                  size={40}
-                />
-                <ThemedText style={styles.tileName} numberOfLines={2}>
-                  {place.name}
-                </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
-                {strings.place.categories[place.category]} ·{' '}
-                {formatDistance(place.defaultRadiusM, unit)}
-              </ThemedText>
-            </Pressable>
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
-            style={({ pressed }) => [
-              styles.tile,
-              styles.tileAdd,
-              { borderColor: theme.border },
-              pressed && { opacity: 0.7 },
-            ]}>
-            <View style={[styles.tileAddIcon, { backgroundColor: theme.accentSoft }]}>
-              <Icon name="add" size={20} color={theme.accent} />
-            </View>
-            <ThemedText style={styles.tileName}>{strings.home.addTile}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {strings.home.addTileHint}
-            </ThemedText>
-          </Pressable>
-        </View>
+        <SavedPlaces
+          places={places}
+          unit={unit}
+          onOpen={(place) => router.push({ pathname: '/place/[id]', params: { id: place.id } })}
+          onAdd={() => router.push({ pathname: '/destination/pin', params: { intent: 'save' } })}
+        />
       ) : null}
 
-      {recent.length > 0 ? (
-        <>
-          <SectionLabel>{strings.home.recentHeading}</SectionLabel>
-          {recent.map((item) => (
-            <Pressable
-              key={`${item.name}-${item.latitude}`}
-              onPress={() => openSetup(item, settings.default_radius_m)}
-              style={({ pressed }) => [styles.recentRow, pressed && { opacity: 0.6 }]}>
-              <View style={[styles.recentIcon, { backgroundColor: theme.backgroundElement }]}>
-                <Icon name="time-outline" size={16} themeColor="textSecondary" />
-              </View>
-              <ThemedText style={styles.recentName} numberOfLines={1}>
-                {item.name}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {formatAge(item.lastUsedAt)} ›
-              </ThemedText>
-            </Pressable>
-          ))}
-        </>
-      ) : null}
+      <RecentList recent={recent} onOpen={(item) => openSetup(item, settings.default_radius_m)} />
 
       {offline || gpsDown ? (
         <ThemedText type="small" themeColor="textSecondary" style={styles.footerNote}>
@@ -605,14 +422,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  greetingBlock: {
-    gap: Spacing.one,
-  },
   greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
     minHeight: 64,
   },
   greeting: {
@@ -621,42 +431,10 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: '700',
   },
-  nextCard: {
-    gap: Spacing.three,
-    paddingVertical: Spacing.three,
-  },
 
-  nextCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  nextCardName: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '700',
-  },
-  nextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingTop: Spacing.one,
-  },
-  nextText: {
-    flex: 1,
-    gap: 2,
-  },
-  nextName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  hero: {
-    alignItems: 'center',
-    gap: Spacing.two,
+  heroFrame: {
     borderRadius: Radii.large,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.three,
   },
   heroTitle: {
     fontSize: 22,
@@ -668,28 +446,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
   },
   heroActions: {
-    flexDirection: 'row',
-    gap: Spacing.two,
     alignSelf: 'stretch',
-    paddingTop: Spacing.one,
   },
   heroAction: {
     flex: 1,
   },
-  searchCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
+  searchCompactFrame: {
     minHeight: 44,
-    paddingHorizontal: Spacing.three,
+    justifyContent: 'center',
     borderRadius: Radii.pill,
     borderWidth: StyleSheet.hairlineWidth,
-  },
-  statusLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingTop: Spacing.one,
   },
   statusText: {
     flex: 1,
@@ -704,12 +470,7 @@ const styles = StyleSheet.create({
   gear: {
     fontSize: 20,
   },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.three,
+  searchFrame: {
     borderRadius: Radii.large,
     borderWidth: StyleSheet.hairlineWidth * 2,
   },
@@ -720,156 +481,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchBadgeGlyph: {
-    fontSize: 22,
-    lineHeight: 26,
-  },
   searchText: {
     flex: 1,
-    gap: 2,
   },
   searchTitle: {
     fontSize: 17,
     fontWeight: '700',
   },
-  searchChevron: {
-    fontSize: 26,
-    lineHeight: 28,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.five,
-    paddingHorizontal: Spacing.three,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-  },
-  emptyGlyph: {
-    fontSize: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  emptyBody: {
-    textAlign: 'center',
-  },
-  emptyAction: {
-    alignSelf: 'stretch',
-    marginTop: Spacing.two,
-  },
-  tiles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
-  },
-  tile: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    alignItems: 'flex-start',
-    gap: Spacing.two,
-    minHeight: 128,
-    padding: Spacing.two + 4,
-    borderRadius: Radii.large,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-  },
-  tileAdd: {
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    justifyContent: 'flex-start',
-  },
-  tileAddIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileName: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  readiness: {
-    gap: Spacing.one,
-    paddingVertical: Spacing.three,
-  },
   strip: {
     paddingVertical: Spacing.three,
-    gap: Spacing.two,
-  },
-  readinessHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one,
-    paddingBottom: 2,
-  },
-  readinessTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  readinessRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  readinessMessage: {
-    flex: 1,
-  },
-  warningText: {
-    fontSize: 14,
-  },
-  journeyCard: {
-    paddingVertical: Spacing.three,
-    gap: Spacing.three,
-  },
-  journeyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  destinationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  interruptedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.two,
   },
   interruptedText: {
     flex: 1,
   },
-  destination: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  stats: {
-    flexDirection: 'row',
-  },
   stat: {
     flex: 1,
     alignItems: 'center',
     gap: 2,
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: '700',
-  },
-  progressBlock: {
-    gap: Spacing.one,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: Radii.pill,
-    backgroundColor: 'rgba(128,128,128,0.28)',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
   },
   actions: {
     flexDirection: 'row',
@@ -877,24 +506,6 @@ const styles = StyleSheet.create({
   },
   action: {
     flex: 1,
-  },
-  recentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-    paddingVertical: Spacing.two,
-  },
-  recentIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.small,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recentName: {
-    flex: 1,
-    fontSize: 16,
   },
   footerNote: {
     textAlign: 'center',

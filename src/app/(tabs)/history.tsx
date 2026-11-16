@@ -4,11 +4,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Icon } from '@/components/ui/icon';
+import { Row, Stack } from '@/components/ui/layout';
 import { EmptyState, SectionLabel } from '@/components/ui/controls';
 import { confirmAction } from '@/components/ui/confirm';
 import { Screen } from '@/components/ui/screen';
 import { formatCopy, strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 import { getDatabase } from '@/db/client';
 import { useAsyncData } from '@/hooks/use-async';
 import { groupSummaries, summariseJourney } from '@/modules/history/summary';
@@ -135,16 +135,17 @@ export default function HistoryScreen() {
                 <Pressable
                   key={summary.id}
                   onPress={() => router.push({ pathname: '/history/[id]', params: { id: summary.id } })}
-                  style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
-                  <View style={styles.rowText}>
-                    <View style={styles.rowHeader}>
+                  style={({ pressed }) => [styles.divider, pressed && { opacity: 0.6 }]}>
+                  <Row gap="two" py="three">
+                  <Stack gap="half" flex>
+                    <Row between gap="two">
                       <ThemedText style={styles.name} numberOfLines={1}>
                         {summary.destinationName}
                       </ThemedText>
                       <ThemedText type="small" themeColor="textSecondary">
                         {formatClock(summary.startedAt)}
                       </ThemedText>
-                    </View>
+                    </Row>
                     <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
                       {outcome(summary)}
                     </ThemedText>
@@ -156,8 +157,9 @@ export default function HistoryScreen() {
                             distance: formatDistance(summary.finalDistanceM, settings.distance_unit),
                           })}`}
                     </ThemedText>
-                  </View>
+                  </Stack>
                   <Icon name="chevron-forward" size={16} themeColor="textSecondary" />
+                  </Row>
                 </Pressable>
               ))}
             </View>
@@ -169,23 +171,9 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.three,
+  divider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128,128,128,0.3)',
-  },
-  rowText: {
-    flex: 1,
-    gap: 2,
-  },
-  rowHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
   },
   name: {
     flex: 1,

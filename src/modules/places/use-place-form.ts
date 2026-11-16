@@ -49,7 +49,9 @@ export function usePlaceForm({ initial, initialCoordinates, initialName, onSaved
   );
   const [radiusM, setRadiusM] = useState(initial?.defaultRadiusM ?? DEFAULT_RADIUS_M);
   const [favourite, setFavourite] = useState(initial?.isFavorite ?? false);
-  const [showCoordinates, setShowCoordinates] = useState(Boolean(initial));
+  // Collapsed by default: coordinates are read-mostly, and an always-open pair
+  // of fields pushed the save actions far down the form.
+  const [showCoordinates, setShowCoordinates] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -60,6 +62,19 @@ export function usePlaceForm({ initial, initialCoordinates, initialName, onSaved
   const coordinatesValid =
     isValidLatitude(parsedLatitude) && isValidLongitude(parsedLongitude);
   const canSave = name.trim().length > 0 && coordinatesValid;
+
+  // Editing a saved place: does the draft differ from what is on disk?
+  const dirty =
+    initial === undefined
+      ? true
+      : name.trim() !== initial.name ||
+        category !== initial.category ||
+        icon !== initial.icon ||
+        (color ?? null) !== (initial.color ?? null) ||
+        radiusM !== initial.defaultRadiusM ||
+        favourite !== initial.isFavorite ||
+        parsedLatitude !== initial.latitude ||
+        parsedLongitude !== initial.longitude;
 
   const chooseCategory = (next: PlaceCategory) => {
     setCategory(next);
@@ -173,6 +188,7 @@ export function usePlaceForm({ initial, initialCoordinates, initialName, onSaved
     error,
     saving,
     canSave,
+    dirty,
     save,
   };
 }

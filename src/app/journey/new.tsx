@@ -1,15 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppButton, Card, NavRow, ToggleRow } from '@/components/ui/controls';
 import { ReadinessChecklist, type ChecklistItem } from '@/components/ui/checklist';
+import { Stack } from '@/components/ui/layout';
 import { RadiusPicker } from '@/components/ui/radius-picker';
 import { Screen } from '@/components/ui/screen';
 import { formatCopy, strings } from '@/constants/strings';
 import { DEFAULT_RADIUS_M, isRadiusValid } from '@/constants/alarms';
-import { Spacing } from '@/constants/theme';
 import { getDatabase } from '@/db/client';
 import { useSettings } from '@/hooks/use-settings';
 import type { Destination } from '@/modules/places';
@@ -139,16 +139,18 @@ export default function JourneySetupScreen() {
           />
         </>
       }>
-      <Card style={styles.summary}>
-        <ThemedText style={styles.destination} numberOfLines={2}>
-          {destination.name}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatCoordinates(destination.latitude, destination.longitude)}
-        </ThemedText>
+      <Card>
+        <Stack gap="one" py="three">
+          <ThemedText style={styles.destination} numberOfLines={2}>
+            {destination.name}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {formatCoordinates(destination.latitude, destination.longitude)}
+          </ThemedText>
+        </Stack>
       </Card>
 
-      <View style={styles.group}>
+      <Stack gap="two">
         <ThemedText type="small" themeColor="textSecondary">
           {strings.journeySetup.alertDistance}
         </ThemedText>
@@ -163,7 +165,7 @@ export default function JourneySetupScreen() {
             {strings.journeySetup.accuracyWarning}
           </ThemedText>
         ) : null}
-      </View>
+      </Stack>
 
       <ToggleRow
         label={strings.journeySetup.earlierWarning}
@@ -190,16 +192,9 @@ export default function JourneySetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  summary: {
-    paddingVertical: Spacing.three,
-    gap: Spacing.one,
-  },
   destination: {
     fontSize: 20,
     fontWeight: '700',
-  },
-  group: {
-    gap: Spacing.two,
   },
   warning: {
     color: '#F5A623',

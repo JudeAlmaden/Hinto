@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Card, NavRow } from '@/components/ui/controls';
+import { Stack } from '@/components/ui/layout';
 import { Mascot } from '@/components/ui/mascot';
 import { confirmAction } from '@/components/ui/confirm';
 import { MoreMenu } from '@/components/ui/more-menu';
@@ -99,12 +100,14 @@ export default function JourneyHistoryScreen() {
         />
       }>
       {journey.status === 'completed' ? (
-        <Card style={styles.celebration}>
-          <Mascot pose="ready" height={128} />
-          <ThemedText style={styles.celebrationTitle}>{strings.history.arrivedTitle}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.celebrationBody}>
-            {strings.history.arrivedBody}
-          </ThemedText>
+        <Card>
+          <Stack gap="one" align="center" py="three">
+            <Mascot pose="ready" height={128} />
+            <ThemedText style={styles.celebrationTitle}>{strings.history.arrivedTitle}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.celebrationBody}>
+              {strings.history.arrivedBody}
+            </ThemedText>
+          </Stack>
         </Card>
       ) : null}
 
@@ -141,11 +144,6 @@ export default function JourneyHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  celebration: {
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
-    gap: Spacing.one,
-  },
   celebrationTitle: {
     fontSize: 20,
     fontWeight: '700',

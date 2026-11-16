@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { MoreMenu } from '@/components/ui/more-menu';
 import { AppButton, Card } from '@/components/ui/controls';
+import { Row, Stack } from '@/components/ui/layout';
 import { Mascot } from '@/components/ui/mascot';
 import { confirmAction } from '@/components/ui/confirm';
 import { Screen } from '@/components/ui/screen';
@@ -125,7 +126,7 @@ export default function ActiveJourneyScreen() {
         />
       }
       footer={
-        <View style={styles.actions}>
+        <Row gap="two">
           <AppButton
             label={journey.status === 'paused' ? strings.home.resume : strings.home.pause}
             variant="secondary"
@@ -146,9 +147,9 @@ export default function ActiveJourneyScreen() {
             onPress={endJourney}
             style={styles.action}
           />
-        </View>
+        </Row>
       }>
-      <View style={styles.hero}>
+      <Stack gap="one" align="center" pt="three">
         <ThemedText style={styles.destination} numberOfLines={2}>
           {journey.destinationName}
         </ThemedText>
@@ -156,23 +157,23 @@ export default function ActiveJourneyScreen() {
           {formatCoordinates(journey.destinationLatitude, journey.destinationLongitude)}
         </ThemedText>
 
-        <View style={styles.distanceBlock}>
+        <Stack gap="half" align="center" pt="three">
           <ThemedText style={styles.distance}>{formatDistance(distanceM, unit)}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {strings.journey.toGo}
           </ThemedText>
-        </View>
-      </View>
+        </Stack>
+      </Stack>
 
       <Card style={styles.statusCard}>
-        <View style={styles.statusRow}>
+        <Row between gap="two">
           <StatusPill status={tracking.status} />
           <ThemedText type="small" themeColor="textSecondary">
             {tracking.accuracyM === null
               ? strings.journey.noFixYet
               : `±${Math.round(tracking.accuracyM)} m`}
           </ThemedText>
-        </View>
+        </Row>
         <ThemedText type="small" themeColor="textSecondary">
           {tracking.lastSampleAt === null
             ? strings.journey.noFixYet
@@ -182,14 +183,14 @@ export default function ActiveJourneyScreen() {
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
-        <View style={styles.progressLabels}>
+        <Row between>
           <ThemedText type="small" themeColor="textSecondary">
             {strings.journey.alertAt} {formatDistance(journey.radiusM, unit)}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {net.isConnected === false ? strings.home.offlineNote : strings.journey.tracking}
           </ThemedText>
-        </View>
+        </Row>
       </Card>
 
       {(state.data?.alerts.length ?? 0) > 0 ? (
@@ -198,14 +199,14 @@ export default function ActiveJourneyScreen() {
         </ThemedText>
       ) : null}
 
-      <View style={styles.mascotBlock}>
+      <Stack gap="one" align="center" pt="four">
         <Mascot pose="onTheGo" height={120} />
         <ThemedText type="small" themeColor="textSecondary" style={styles.mascotNote}>
           {tracking.lastSampleAt === null
             ? strings.journey.mascotWaiting
             : strings.journey.mascotTracking}
         </ThemedText>
-      </View>
+      </Stack>
 
       <ThemedText type="small" themeColor="textSecondary">
         {strings.journey.disclaimer}
@@ -218,16 +219,6 @@ const styles = StyleSheet.create({
   gear: {
     fontSize: 22,
   },
-  hero: {
-    alignItems: 'center',
-    gap: Spacing.one,
-    paddingTop: Spacing.three,
-  },
-  mascotBlock: {
-    alignItems: 'center',
-    gap: Spacing.one,
-    paddingTop: Spacing.four,
-  },
   mascotNote: {
     textAlign: 'center',
     paddingHorizontal: Spacing.four,
@@ -236,10 +227,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
-  },
-  distanceBlock: {
-    alignItems: 'center',
-    paddingTop: Spacing.three,
   },
   distance: {
     fontSize: 44,
@@ -250,11 +237,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   progressTrack: {
     height: 8,
     borderRadius: Radii.pill,
@@ -264,14 +246,6 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: '#D99A43',
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.two,
   },
   action: {
     flex: 1,

@@ -37,7 +37,51 @@ All notable changes to Hinto are documented here. Versions follow
   card that shows “Ready to wake you” when everything is granted, or the first
   three blockers with a Fix link.
 
+### Changed
+- Home split into `components/home/*` cards (next stop, readiness, saved grid,
+  active journey, recent list), shrinking the screen from 867 to 514 lines.
+- The layout-utility migration now covers every screen with layout styles:
+  destination pin, place form, onboarding shell and the remaining Home rows.
+- `Box` accepts `onPress`, so a utility row can be tappable without a wrapper.
+- Layout utilities adopted across the main screens: Home header/next-stop/hero/
+  readiness, place detail, journey detail and setup, alarm, history list and
+  detail, settings, sound, diagnostics and onboarding steps now express spacing
+  and alignment as props instead of one-off `StyleSheet` entries.
+
 ### Added
+- `components/ui/layout.tsx`: Tailwind-like `Box`, `Stack`, `Row` and `Spacer`
+  utilities over the spacing, radius and palette tokens (`gap="three"`, `p="four"`,
+  `bg="backgroundElement"`). Place detail's view is the first adopter.
+
+### Fixed
+- Tapping a saved place on Home opened journey setup and could leave a record in
+  History. Saved tiles now open the place view; only explicit start actions open
+  setup.
+- Abandoning journey setup deletes the prepared draft row (cascading its alert
+  rules) instead of saving it as a `cancelled` journey.
+
+### Changed
+- Place form coordinates moved into a single compact disclosure row that shows the
+  saved pair inline and is collapsed by default, instead of a ghost button with
+  two large fields always open for saved places.
+- Place view keeps a full-width **Start journey** in the footer; **Edit** moved into
+  the header `⋯` menu alongside Delete (and disappears while editing).
+- Place detail is now a read-only **view** by default: place icon, name, category,
+  alert distance and coordinates plus the trips record, with a sticky footer of
+  **Edit** and **Start journey**. Editing is a deliberate mode with **Cancel** and
+  **Save** in the same footer; Save reads “Saved” and is disabled until the draft
+  differs. Back or Cancel with unsaved edits asks before discarding. Start journey
+  can no longer run against stale values while a draft is open.
+- `Screen` accepts `onBack` so a screen can intercept the header chevron.
+- `PlaceForm` exposes its save action and status through a ref so actions can live
+  in a sticky footer.
+
+### Added
+- Place detail shows **Trips here**: trip count, average journey time and how
+  long ago the last trip ended, plus the five most recent trips (completed,
+  interrupted or cancelled) linking straight to their journey record.
+- `listJourneys` accepts a `placeId` filter so per-place history is queried in
+  SQL instead of being filtered in the screen.
 - Home “Your next stop” card: the closest saved place (favourite first) now leads
   the page as a bordered card with a 56 dp icon, 22 px name, distance and a
   Start journey button; the old small row in the header is gone. This is the

@@ -6,8 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppButton } from '@/components/ui/controls';
+import { Row, Stack } from '@/components/ui/layout';
 import { strings } from '@/constants/strings';
-import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export const ONBOARDING_STEPS = 8;
@@ -43,7 +44,7 @@ export function OnboardingShell({
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
+        <Row gap="two" px="three" pt="two" style={styles.header}>
           {back ? (
             <Pressable onPress={() => router.back()} hitSlop={12}>
               <ThemedText style={styles.back}>‹</ThemedText>
@@ -59,7 +60,7 @@ export function OnboardingShell({
               </ThemedText>
             </Pressable>
           ) : null}
-        </View>
+        </Row>
 
         <ScrollView contentContainerStyle={styles.content}>
           {children}
@@ -74,13 +75,13 @@ export function OnboardingShell({
           ) : null}
         </ScrollView>
 
-        <View style={styles.footer}>
+        <Stack gap="two" px="four" pb="three">
           <AppButton label={primaryLabel} onPress={onPrimary} />
           {secondaryLabel && onSecondary ? (
             <AppButton label={secondaryLabel} variant="ghost" onPress={onSecondary} />
           ) : null}
 
-          <View style={styles.dots}>
+          <Row center gap="one" pt="two">
             {Array.from({ length: ONBOARDING_STEPS }, (_, index) => (
               <View
                 key={index}
@@ -93,8 +94,8 @@ export function OnboardingShell({
                 ]}
               />
             ))}
-          </View>
-        </View>
+          </Row>
+        </Stack>
       </SafeAreaView>
     </ThemedView>
   );
@@ -111,10 +112,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
     minHeight: 44,
   },
   back: {
@@ -129,11 +126,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
-    gap: Spacing.three,
-    alignItems: 'center',
   },
   title: {
     fontSize: 24,
@@ -143,17 +135,6 @@ const styles = StyleSheet.create({
   },
   body: {
     textAlign: 'center',
-  },
-  footer: {
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.three,
-    gap: Spacing.two,
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.one,
-    paddingTop: Spacing.two,
   },
   dot: {
     width: 7,

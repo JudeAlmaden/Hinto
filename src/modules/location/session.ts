@@ -14,7 +14,7 @@ import { readBattery } from '@/modules/battery/service';
 import { getReadinessIssues } from '@/modules/permissions/service';
 import { getSettings } from '@/modules/settings/repository';
 import type { Journey } from '@/modules/journeys';
-import { getActiveJourney, getJourney } from '@/modules/journeys/repository';
+import { deleteJourney, getActiveJourney, getJourney } from '@/modules/journeys/repository';
 import {
   activateJourney,
   finishJourney,
@@ -134,11 +134,15 @@ export async function endJourneySession(
   return journey;
 }
 
+/**
+ * Drops a setup draft. Nothing travelled, so the row is deleted rather than
+ * recorded as a cancelled journey; alert rules go with it via ON DELETE CASCADE.
+ */
 export async function cancelPreparedJourney(journeyId: string): Promise<void> {
   const db = await getDatabase();
   const journey = await getJourney(db, journeyId);
   if (!journey || journey.status !== 'prepared') return;
-  await finishJourney(db, journeyId, 'cancelled');
+  await deleteJourney(db, journeyId);
 }
 
 export interface BootstrapResult {

@@ -17,6 +17,8 @@ export interface ScreenProps {
   /** Show the Hinto wordmark instead of a text title. */
   logo?: boolean;
   back?: boolean;
+  /** Replaces the back chevron's default router.back(). */
+  onBack?: () => void;
   right?: ReactNode;
   /** Extra block under the title row (greeting, next action, etc.). */
   headerContent?: ReactNode;
@@ -33,6 +35,7 @@ export function Screen({
   subtitle,
   logo = false,
   back = false,
+  onBack,
   right,
   headerContent,
   children,
@@ -66,7 +69,12 @@ export function Screen({
         {showsHeader ? (
           <View style={styles.header}>
             {back ? (
-              <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backButton}>
+              <Pressable
+                onPress={onBack ?? (() => router.back())}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={strings.common.back}
+                style={styles.backButton}>
                 <Icon name="chevron-back" size={26} themeColor="text" />
               </Pressable>
             ) : null}

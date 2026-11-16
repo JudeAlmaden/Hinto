@@ -203,15 +203,20 @@ export async function getActiveJourney(db: SqlDatabase): Promise<Journey | null>
 
 export async function listJourneys(
   db: SqlDatabase,
-  options: { statuses?: JourneyStatus[]; limit?: number } = {},
+  options: { statuses?: JourneyStatus[]; placeId?: string; limit?: number } = {},
 ): Promise<Journey[]> {
-  const { statuses, limit = 50 } = options;
+  const { statuses, placeId, limit = 50 } = options;
   const params: SqlValue[] = [];
-  let where = '';
+  const conditions: string[] = [];
   if (statuses && statuses.length > 0) {
-    where = `WHERE status IN (${statuses.map(() => '?').join(', ')})`;
+    conditions.push(`status IN (${statuses.map(() => '?').join(', ')})`);
     params.push(...statuses);
   }
+  if (placeId) {
+    conditions.push('place_id = ?');
+    params.push(placeId);
+  }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   params.push(limit);
 
   const rows = await db.getAllAsync<JourneyRow>(

@@ -7,6 +7,7 @@ import { PinMap } from '@/components/pin-map';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Row, Stack } from '@/components/ui/layout';
 import { AppButton, TextField } from '@/components/ui/controls';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Icon } from '@/components/ui/icon';
@@ -196,7 +197,7 @@ export default function PinDestinationScreen() {
         )}
 
         <SafeAreaView edges={['top']} style={styles.headerSafe} pointerEvents="box-none">
-          <View style={styles.headerRow} pointerEvents="box-none">
+          <Row gap="two" px="three" pt="two" pointerEvents="box-none">
             <Pressable
               accessibilityRole="button"
               onPress={() => router.back()}
@@ -211,7 +212,7 @@ export default function PinDestinationScreen() {
                   : strings.destination.pinTitle}
               </ThemedText>
             </View>
-          </View>
+          </Row>
         </SafeAreaView>
 
         {mode === 'map' ? (
@@ -242,7 +243,7 @@ export default function PinDestinationScreen() {
             {strings.destination.pinHint}
           </ThemedText>
         ) : (
-          <View style={styles.coordinateFields}>
+          <Stack gap="two">
             <ThemedText type="small" themeColor="textSecondary">
               {mapFailed ? strings.destination.mapFailed : strings.destination.coordinateHint}
             </ThemedText>
@@ -265,7 +266,7 @@ export default function PinDestinationScreen() {
               variant="secondary"
               onPress={applyCoordinates}
             />
-          </View>
+          </Stack>
         )}
 
         <TextField
@@ -295,7 +296,7 @@ export default function PinDestinationScreen() {
           loading={savingPlace}
         />
 
-        <View style={styles.links}>
+        <Row between pt="one">
           <Pressable
             onPress={() =>
               effectiveIntent === 'save'
@@ -321,7 +322,7 @@ export default function PinDestinationScreen() {
               {mode === 'map' ? strings.destination.coordinateEntry : strings.destination.showMap}
             </ThemedText>
           </Pressable>
-        </View>
+        </Row>
       </BottomSheet>
     </ThemedView>
   );
@@ -339,13 +340,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.two,
   },
   circle: {
     width: 44,
@@ -376,13 +370,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  coordinateFields: {
-    gap: Spacing.two,
-  },
-  links: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.one,
   },
 });

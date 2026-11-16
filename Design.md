@@ -145,6 +145,31 @@ Use a consistent 4-point spacing system. Always import `Spacing` from
 
 Radii come from `Radii`: `small` 8, `medium` 12, `large` 18, `pill` 999.
 
+### Layout utilities
+
+`components/ui/layout.tsx` gives Tailwind-like props on top of the tokens, so
+screens stop repeating flex boilerplate in `StyleSheet.create`:
+
+```tsx
+<Row gap="three" pt="two">
+  <PlaceIcon size={64} />
+  <Stack gap="half" flex>
+    <ThemedText style={styles.name}>{place.name}</ThemedText>
+    <ThemedText type="small">{category}</ThemedText>
+  </Stack>
+</Row>
+```
+
+- `Box` — the primitive: `p`, `px`, `py`, `pt`, `pb`, `pl`, `pr`, `gap`, `row`,
+  `center`, `between`, `wrap`, `align`, `justify`, `flex`, `bg`, `border`,
+  `borderColor`, `rounded`.
+- `Stack` — column; `Row` — row, vertically centred by default; `Spacer` —
+  `flex: 1` filler inside a row.
+- Spacing and radius props take a token key (`"three"`) or a raw value (`16`).
+  Colours take a palette key (`"accentSoft"`) or a literal hex.
+- Use them for structure and spacing; keep component-specific styling (type,
+  borders on a specific card, animations) in that component's own style.
+
 ### Layout guidelines
 
 - Screen gutters are owned by `Screen` (`Spacing.three`), not by screens. Screens

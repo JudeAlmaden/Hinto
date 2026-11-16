@@ -4,9 +4,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Icon } from '@/components/ui/icon';
 import { AppButton, Card, SectionLabel } from '@/components/ui/controls';
+import { Row, Stack } from '@/components/ui/layout';
 import { Screen } from '@/components/ui/screen';
 import { strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 import { useSettings } from '@/hooks/use-settings';
 import { useTheme } from '@/hooks/use-theme';
 import { ALARM_SOUNDS, type AlarmSoundId } from '@/modules/alarm';
@@ -89,18 +89,20 @@ export default function AlarmSoundScreen() {
               void update({ alarm_sound_id: sound });
               play(sound);
             }}
-            style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
-            <View style={styles.text}>
-              <ThemedText style={styles.name}>{strings.sound[sound]}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {playing === sound ? strings.alarmTest.playing : strings.sound.preview}
+            style={({ pressed }) => [styles.divider, pressed && { opacity: 0.6 }]}>
+            <Row gap="two" py="three">
+              <Stack gap="half" flex>
+                <ThemedText style={styles.name}>{strings.sound[sound]}</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {playing === sound ? strings.alarmTest.playing : strings.sound.preview}
+                </ThemedText>
+              </Stack>
+              <ThemedText style={[styles.check, { color: theme.accent }]}>
+                {settings.alarm_sound_id === sound ? (
+                  <Icon name="checkmark" size={18} themeColor="accent" />
+                ) : null}
               </ThemedText>
-            </View>
-            <ThemedText style={[styles.check, { color: theme.accent }]}>
-              {settings.alarm_sound_id === sound ? (
-                <Icon name="checkmark" size={18} themeColor="accent" />
-              ) : null}
-            </ThemedText>
+            </Row>
           </Pressable>
         ))}
       </View>
@@ -113,20 +115,22 @@ export default function AlarmSoundScreen() {
             void update({ alarm_sound_id: 'custom' });
             play('custom');
           }}
-          style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
-          <View style={styles.text}>
-            <ThemedText style={styles.name} numberOfLines={1}>
-              {customName ?? strings.sound.custom}
+          style={({ pressed }) => [styles.divider, pressed && { opacity: 0.6 }]}>
+          <Row gap="two" py="three">
+            <Stack gap="half" flex>
+              <ThemedText style={styles.name} numberOfLines={1}>
+                {customName ?? strings.sound.custom}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {playing === 'custom' ? strings.alarmTest.playing : strings.sound.preview}
+              </ThemedText>
+            </Stack>
+            <ThemedText style={[styles.check, { color: theme.accent }]}>
+              {settings.alarm_sound_id === 'custom' ? (
+                <Icon name="checkmark" size={18} themeColor="accent" />
+              ) : null}
             </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {playing === 'custom' ? strings.alarmTest.playing : strings.sound.preview}
-            </ThemedText>
-          </View>
-          <ThemedText style={[styles.check, { color: theme.accent }]}>
-            {settings.alarm_sound_id === 'custom' ? (
-              <Icon name="checkmark" size={18} themeColor="accent" />
-            ) : null}
-          </ThemedText>
+          </Row>
         </Pressable>
       ) : (
         <ThemedText type="small" themeColor="textSecondary">
@@ -155,30 +159,24 @@ export default function AlarmSoundScreen() {
         </ThemedText>
       ) : null}
 
-      <Card style={styles.note}>
-        <ThemedText type="small" themeColor="textSecondary">
-          {strings.sound.note}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {strings.sound.customNote}
-        </ThemedText>
+      <Card>
+        <Stack gap="one" py="three">
+          <ThemedText type="small" themeColor="textSecondary">
+            {strings.sound.note}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {strings.sound.customNote}
+          </ThemedText>
+        </Stack>
       </Card>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
+  divider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128,128,128,0.3)',
-    gap: Spacing.two,
-  },
-  text: {
-    flex: 1,
-    gap: 2,
   },
   name: {
     fontSize: 16,
@@ -189,8 +187,5 @@ const styles = StyleSheet.create({
     width: 22,
     textAlign: 'center',
   },
-  note: {
-    paddingVertical: Spacing.three,
-    gap: Spacing.one,
-  },
+
 });

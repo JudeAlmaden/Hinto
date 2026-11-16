@@ -5,10 +5,10 @@ import { Share, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppButton, Card, NavRow, SectionLabel } from '@/components/ui/controls';
+import { Row, Stack } from '@/components/ui/layout';
 import { ResetStorageDialog } from '@/components/ui/reset-dialog';
 import { Screen } from '@/components/ui/screen';
 import { formatCopy, strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 import { getDatabase, resetStorage, retryStorage } from '@/db/client';
 import { useAsyncData } from '@/hooks/use-async';
 import { useStorage } from '@/hooks/use-storage';
@@ -106,9 +106,10 @@ export default function DiagnosticsScreen() {
       </View>
 
       {storage.state === 'unavailable' ? (
-        <Card style={styles.card}>
+        <Card>
+          <Stack gap="one" py="three">
           <ThemedText type="small">{strings.diagnostics.storageUnavailable}</ThemedText>
-          <View style={styles.row}>
+          <Row gap="two">
             <AppButton
               label={strings.common.retry}
               variant="secondary"
@@ -121,12 +122,14 @@ export default function DiagnosticsScreen() {
               onPress={() => setResetVisible(true)}
               style={styles.action}
             />
-          </View>
+          </Row>
+          </Stack>
         </Card>
       ) : null}
 
       <SectionLabel>{strings.diagnostics.samples}</SectionLabel>
-      <Card style={styles.card}>
+      <Card>
+        <Stack gap="one" py="three">
         <ThemedText type="small">
           {tracking.lastSample
             ? `${formatDateTime(tracking.lastSample.timestamp)} · ±${Math.round(
@@ -137,6 +140,7 @@ export default function DiagnosticsScreen() {
         <ThemedText type="small" themeColor="textSecondary">
           {strings.diagnostics.policyInterval}: {describePolicy(policy)}
         </ThemedText>
+        </Stack>
       </Card>
 
       <SectionLabel>{strings.diagnostics.metrics}</SectionLabel>
@@ -185,7 +189,8 @@ export default function DiagnosticsScreen() {
         {strings.diagnostics.events}
       </SectionLabel>
 
-      <Card style={styles.card}>
+      <Card>
+        <Stack gap="one" py="three">
         {(data?.events.length ?? 0) === 0 ? (
           <ThemedText type="small" themeColor="textSecondary">
             {strings.diagnostics.empty}
@@ -201,13 +206,14 @@ export default function DiagnosticsScreen() {
             </ThemedText>
           ))
         )}
+        </Stack>
       </Card>
 
       <ThemedText type="small" themeColor="textSecondary">
         {strings.diagnostics.privacy}
       </ThemedText>
 
-      <View style={styles.row}>
+      <Row gap="two">
         <AppButton label={strings.diagnostics.share} variant="secondary" onPress={() => void share()} style={styles.action} />
         <AppButton
           label={strings.diagnostics.clear}
@@ -222,7 +228,7 @@ export default function DiagnosticsScreen() {
           }}
           style={styles.action}
         />
-      </View>
+      </Row>
 
       <ResetStorageDialog
         visible={resetVisible}
@@ -237,14 +243,6 @@ export default function DiagnosticsScreen() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    paddingVertical: Spacing.three,
-    gap: Spacing.one,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
   action: {
     flex: 1,
   },
