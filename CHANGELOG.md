@@ -5,6 +5,10 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.5.0] - 2026-11-16
+
 ### Changed
 - Place form: the side preview tile is gone (it misaligned the Name field),
   icons use a measured four-column grid so every tile is identical, and the
