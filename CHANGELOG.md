@@ -5,10 +5,19 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-16
+
+### Added
+- GitHub Actions automated APK release pipeline: builds standalone Android APK on push to main and attaches the binary to GitHub Releases with direct download links.
+- New brand app icon: full-bleed warm amber gold (#D99A43) with centered chime bell and alert ripple emblem, configured with matching Android adaptive icon background.
+
 ### Fixed
-- Pin screen now notices when the phone is offline: it warns that map tiles may
-  not load, skips reverse geocoding instead of leaving the name on a spinner, and
-  keeps the pin/coordinate/save paths working.
+- Saved places cards on Home: switched tile layout from row to vertical stack so place name and category/distance subtitle wrap inside the card without overflowing into adjacent tiles.
+- Pin screen now notices when the phone is offline: it warns that map tiles may not load, skips reverse geocoding instead of leaving the name on a spinner, and keeps the pin/coordinate/save paths working.
+
+### Technical
+- Modified: .github/workflows/ci.yml, app.config.ts, assets/images/icon.png, assets/images/android-icon-foreground.png, src/components/home/saved-places.tsx, package.json
+- Tests: 143 passing — lint/typecheck clean
 
 ## [0.5.0] - 2026-11-16
 

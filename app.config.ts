@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.5.0',
+  version: '0.6.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',
@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'com.hinto.app',
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#D99A43',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',

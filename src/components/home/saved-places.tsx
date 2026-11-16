@@ -27,7 +27,7 @@ export function SavedPlaces({
   return (
     <Row wrap gap="two" align="stretch">
       {places.slice(0, 3).map((place) => (
-        <Row
+        <Stack
           key={place.id}
           align="flex-start"
           gap="two"
@@ -40,10 +40,10 @@ export function SavedPlaces({
           <ThemedText style={styles.name} numberOfLines={2}>
             {place.name}
           </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.subtitle}>
             {strings.place.categories[place.category]} · {formatDistance(place.defaultRadiusM, unit)}
           </ThemedText>
-        </Row>
+        </Stack>
       ))}
 
       <Stack
@@ -71,6 +71,7 @@ const styles = {
     padding: Spacing.two + 4,
     borderRadius: Radii.large,
     borderWidth: StyleSheet.hairlineWidth * 2,
+    overflow: 'hidden' as const,
   },
   addTile: {
     borderStyle: 'dashed' as const,
@@ -84,5 +85,9 @@ const styles = {
   name: {
     fontSize: 15,
     fontWeight: '700' as const,
+    width: '100%' as const,
+  },
+  subtitle: {
+    width: '100%' as const,
   },
 } as const;

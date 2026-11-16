@@ -79,6 +79,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const ver = process.argv[1];
+            const repo = process.env.GITHUB_REPOSITORY;
             const text = fs.readFileSync("CHANGELOG.md", "utf8");
             const startHeader = "## [" + ver + "]";
             const startIndex = text.indexOf(startHeader);
@@ -89,13 +90,47 @@ jobs:
               const section = nextHeaderIndex === -1 ? afterStart : afterStart.slice(0, nextHeaderIndex);
               result = section.replace(/^[^\n]*\n+/, "").trim();
             }
+            const body = (result || ("Release v" + ver)) +
+              "\n\n---\n\n### 📦 Downloads\n" +
+              "- 📱 **Android APK:** [Hinto-v" + ver + ".apk](https://github.com/" + repo + "/releases/download/v" + ver + "/Hinto-v" + ver + ".apk)";
             const output = [
               "content<<EOF",
-              result || ("Release v" + ver),
+              body,
               "EOF"
             ].join("\n");
             fs.appendFileSync(process.env.GITHUB_OUTPUT, output + "\n");
           ' "${{ steps.ver.outputs.version }}"
+
+      - name: Setup Java
+        if: steps.version_check.outputs.skip != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        if: steps.version_check.outputs.skip != 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies for build
+        if: steps.version_check.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Prebuild Android native project
+        if: steps.version_check.outputs.skip != 'true'
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build Android APK
+        if: steps.version_check.outputs.skip != 'true'
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+          cd ..
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -n "$APK_PATH" ]; then
+            cp "$APK_PATH" "Hinto-v${{ steps.ver.outputs.version }}.apk"
+            echo "Found APK at $APK_PATH, copied to Hinto-v${{ steps.ver.outputs.version }}.apk"
+          fi
 
       - name: Create GitHub Release
         if: steps.version_check.outputs.skip != 'true'
@@ -104,6 +139,7 @@ jobs:
           tag_name: "v${{ steps.ver.outputs.version }}"
           name: "v${{ steps.ver.outputs.version }}"
           body: ${{ steps.changelog.outputs.content }}
+          files: Hinto-v*.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
