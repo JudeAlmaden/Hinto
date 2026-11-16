@@ -103,6 +103,7 @@ async function fireAlarm(
   customSoundUri: string | null,
   snoozeMinutes: number,
   vibration: boolean,
+  vibrationRepeat: boolean,
   repeatUntilDismissed: boolean,
   now: number,
 ): Promise<void> {
@@ -140,6 +141,7 @@ async function fireAlarm(
     customSoundUri,
     snoozeMinutes,
     vibration,
+    vibrationRepeat,
     repeatUntilDismissed,
     stageIndex: stage.stageIndex,
     estimateOnly: decision.estimateOnly,
@@ -242,6 +244,7 @@ export async function processLocationSamples(
         settings.custom_alarm_uri,
         settings.snooze_minutes,
         settings.vibration_enabled,
+        settings.vibration_repeat,
         settings.repeat_until_dismissed,
         now,
       );

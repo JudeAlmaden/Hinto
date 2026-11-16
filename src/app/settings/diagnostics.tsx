@@ -21,17 +21,32 @@ import {
 } from '@/modules/diagnostics/repository';
 import { selectPolicy, describePolicy } from '@/modules/geofence/policy';
 import type { Journey } from '@/modules/journeys';
+import { isTrackingActive } from '@/modules/location/service';
+import {
+  areLocationServicesEnabled,
+  isBatteryOptimisationOn,
+  readPermissions,
+} from '@/modules/permissions/service';
 import { getActiveJourney, listJourneys, listAlertsForJourneys } from '@/modules/journeys/repository';
 import { DEFAULT_SETTINGS, type AppSettings } from '@/modules/settings/schema';
 import { getSettings } from '@/modules/settings/repository';
 import { computeMetrics, type Metrics } from '@/modules/stats/metrics';
-import { formatDateTime } from '@/utils/format';
+import { formatAge, formatDateTime } from '@/utils/format';
+
+/** What the OS currently allows while the screen is off. */
+interface BackgroundHealth {
+  tracking: boolean;
+  notifications: boolean;
+  batteryOptimised: boolean;
+  services: boolean;
+}
 
 interface DiagnosticsData {
   events: DiagnosticEvent[];
   journey: Journey | null;
   settings: AppSettings;
   metrics: Metrics;
+  health: BackgroundHealth;
 }
 
 function percent(value: number | null): string {
@@ -56,7 +71,24 @@ export default function DiagnosticsScreen() {
       getActiveJourney(db),
     ]);
     const alerts = await listAlertsForJourneys(db, journeys.map((item) => item.id));
-    return { events, journey, settings, metrics: computeMetrics(journeys, alerts) };
+    const [tracking, permissions, batteryOptimised, services] = await Promise.all([
+      isTrackingActive(),
+      readPermissions(),
+      isBatteryOptimisationOn(),
+      areLocationServicesEnabled(),
+    ]);
+    return {
+      events,
+      journey,
+      settings,
+      metrics: computeMetrics(journeys, alerts),
+      health: {
+        tracking,
+        notifications: permissions.notifications.status === 'granted',
+        batteryOptimised,
+        services,
+      },
+    };
   }, 'diagnostics');
 
   const { reload } = state;
@@ -70,6 +102,9 @@ export default function DiagnosticsScreen() {
   const data = state.data;
   const settings = data?.settings ?? DEFAULT_SETTINGS;
   const metrics = data?.metrics;
+  const health = data?.health ?? null;
+  const onOff = (value: boolean) =>
+    value ? strings.permissions.enabled : strings.permissions.disabled;
 
   const policy = selectPolicy({
     distanceM: tracking.lastKnownDistanceM,
@@ -126,6 +161,56 @@ export default function DiagnosticsScreen() {
           </Stack>
         </Card>
       ) : null}
+
+      <SectionLabel>{strings.diagnostics.background}</SectionLabel>
+      <View>
+        <NavRow
+          label={strings.diagnostics.trackingService}
+          value={
+            health
+              ? health.tracking
+                ? strings.diagnostics.running
+                : strings.diagnostics.stopped
+              : strings.common.loading
+          }
+        />
+        <NavRow
+          label={strings.diagnostics.lastSample}
+          value={
+            tracking.lastSampleAt === null
+              ? strings.diagnostics.noSamples
+              : formatAge(tracking.lastSampleAt)
+          }
+        />
+        <NavRow
+          label={strings.permissions.notifications}
+          value={health ? onOff(health.notifications) : strings.common.loading}
+        />
+        <NavRow
+          label={strings.permissions.batteryOptimisation}
+          value={
+            health
+              ? health.batteryOptimised
+                ? strings.permissions.enabled
+                : strings.permissions.disabled
+              : strings.common.loading
+          }
+        />
+        <NavRow
+          label={strings.permissions.locationServices}
+          value={health ? onOff(health.services) : strings.common.loading}
+          last
+        />
+      </View>
+
+      <Card>
+        <Stack gap="one" py="three">
+          <ThemedText style={styles.healthTitle}>{strings.diagnostics.screenOffTitle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {strings.diagnostics.screenOffBody}
+          </ThemedText>
+        </Stack>
+      </Card>
 
       <SectionLabel>{strings.diagnostics.samples}</SectionLabel>
       <Card>
@@ -245,5 +330,9 @@ export default function DiagnosticsScreen() {
 const styles = StyleSheet.create({
   action: {
     flex: 1,
+  },
+  healthTitle: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

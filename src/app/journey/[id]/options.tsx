@@ -102,6 +102,7 @@ export default function JourneyOptionsScreen() {
       customSoundUri: settings.custom_alarm_uri,
       snoozeMinutes: settings.snooze_minutes,
       vibration: settings.vibration_enabled,
+      vibrationRepeat: settings.vibration_repeat,
       repeatUntilDismissed: settings.repeat_until_dismissed,
       stageIndex: 0,
       estimateOnly: false,

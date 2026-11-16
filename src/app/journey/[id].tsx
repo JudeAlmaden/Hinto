@@ -18,12 +18,13 @@ import { getDatabase } from '@/db/client';
 import { useAsyncData } from '@/hooks/use-async';
 import { useTheme } from '@/hooks/use-theme';
 import { useTracking } from '@/hooks/use-tracking';
-import type { Journey, JourneyAlert } from '@/modules/journeys';
+import { TERMINAL_STATUSES, type Journey, type JourneyAlert } from '@/modules/journeys';
 import { getJourney, listJourneyAlerts } from '@/modules/journeys/repository';
 import { endJourneySession, pauseJourneySession, resumeJourneySession } from '@/modules/location/session';
 import { DEFAULT_SETTINGS, type AppSettings } from '@/modules/settings/schema';
 import { getSettings } from '@/modules/settings/repository';
 import { formatAge, formatCoordinates, formatDistance } from '@/utils/format';
+import { openJourneyResult } from '@/utils/navigation';
 import { progressToRadius } from '@/utils/progress';
 
 interface Detail {
@@ -67,6 +68,30 @@ export default function ActiveJourneyScreen() {
     );
   }
 
+  // Reached only if an ended journey is opened again (Back or a stale link):
+  // it must not offer live controls or a countdown.
+  if (TERMINAL_STATUSES.includes(journey.status)) {
+    return (
+      <Screen title={strings.journey.title} back>
+        <Card>
+          <Stack gap="one" align="center" py="three">
+            <Mascot pose="ready" height={112} />
+            <ThemedText style={styles.destination}>{strings.journey.endedTitle}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.endedBody}>
+              {strings.journey.endedBody}
+            </ThemedText>
+          </Stack>
+        </Card>
+        <AppButton
+          label={strings.journey.viewSummary}
+          onPress={() =>
+            router.replace({ pathname: '/history/[id]', params: { id: journey.id } })
+          }
+        />
+      </Screen>
+    );
+  }
+
   const distanceM = tracking.lastKnownDistanceM ?? journey.lastKnownDistanceM;
   const progress = progressToRadius(distanceM, journey.radiusM);
   const isTriggered = journey.status === 'triggered';
@@ -75,7 +100,7 @@ export default function ActiveJourneyScreen() {
   const stopAlarmAndEnd = () =>
     void run(async () => {
       await endJourneySession(journey.id, 'completed');
-      router.replace({ pathname: '/history/[id]', params: { id: journey.id } });
+      openJourneyResult(router, journey.id);
     });
 
   const endJourney = () =>
@@ -86,8 +111,10 @@ export default function ActiveJourneyScreen() {
       destructive: true,
       onConfirm: () =>
         void run(async () => {
-          await endJourneySession(journey.id, 'completed');
-          router.replace({ pathname: '/history/[id]', params: { id: journey.id } });
+          // Ending early is abandoning the trip, not arriving: it must not be
+          // recorded as a completed journey.
+          await endJourneySession(journey.id, 'cancelled');
+          openJourneyResult(router, journey.id);
         }),
     });
 
@@ -284,6 +311,9 @@ const styles = StyleSheet.create({
   triggeredTitle: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  endedBody: {
+    textAlign: 'center',
   },
   flexOne: {
     flex: 1,

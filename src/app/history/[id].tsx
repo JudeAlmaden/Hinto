@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Card, NavRow } from '@/components/ui/controls';
+import { AppButton, Card, NavRow } from '@/components/ui/controls';
 import { Stack } from '@/components/ui/layout';
 import { Mascot } from '@/components/ui/mascot';
 import { confirmAction } from '@/components/ui/confirm';
@@ -87,6 +87,13 @@ export default function JourneyHistoryScreen() {
       title={strings.history.detailTitle}
       subtitle={journey.destinationName}
       back
+      footer={
+        <AppButton
+          label={strings.alarm.goHome}
+          variant="primary"
+          onPress={() => router.replace('/')}
+        />
+      }
       right={
         <MoreMenu
           items={[

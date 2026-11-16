@@ -12,7 +12,7 @@ import { strings } from '@/constants/strings';
 import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export const ONBOARDING_STEPS = 9;
+export const ONBOARDING_STEPS = 8;
 
 export function OnboardingShell({
   step,
@@ -55,7 +55,9 @@ export function OnboardingShell({
         <Row between align="center" px="three" pt="one" style={styles.header}>
           {back ? (
             <Pressable
-              onPress={() => router.back()}
+              onPress={() =>
+                router.canGoBack() ? router.back() : router.replace('/onboarding/welcome')
+              }
               hitSlop={12}
               accessibilityRole="button"
               accessibilityLabel={strings.common.back}

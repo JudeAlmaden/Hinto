@@ -70,7 +70,12 @@ export function Screen({
           <View style={styles.header}>
             {back ? (
               <Pressable
-                onPress={onBack ?? (() => router.back())}
+                onPress={
+                  onBack ??
+                  // A screen opened by replace or a deep link has nothing behind
+                  // it; Back would silently do nothing, so fall back to Home.
+                  (() => (router.canGoBack() ? router.back() : router.replace('/')))
+                }
                 hitSlop={12}
                 accessibilityRole="button"
                 accessibilityLabel={strings.common.back}
@@ -187,7 +192,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.three,
   },
   tabInset: {
-    paddingBottom: 116,
+    paddingBottom: 76,
   },
   footer: {
     paddingHorizontal: Spacing.three,

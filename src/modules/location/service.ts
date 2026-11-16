@@ -91,7 +91,11 @@ export async function currentLocation(): Promise<Location.LocationObject | null>
   try {
     return await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
   } catch {
-    const last = await Location.getLastKnownPositionAsync({ maxAge: 300_000 });
-    return last;
+    try {
+      const last = await Location.getLastKnownPositionAsync({ maxAge: 300_000 });
+      return last;
+    } catch {
+      return null;
+    }
   }
 }

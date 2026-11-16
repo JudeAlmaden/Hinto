@@ -28,6 +28,8 @@ export interface AlarmRequest {
   customSoundUri?: string | null;
   snoozeMinutes: number;
   vibration: boolean;
+  /** Keep the vibration pattern running until the alarm is ended or snoozed. */
+  vibrationRepeat: boolean;
   repeatUntilDismissed: boolean;
   stageIndex: number;
   /** The stage was inferred from a segment crossing, not a point inside it. */

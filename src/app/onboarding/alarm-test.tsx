@@ -8,6 +8,7 @@ import { Mascot } from '@/components/ui/mascot';
 import { strings } from '@/constants/strings';
 import { useSettings } from '@/hooks/use-settings';
 import { configureAlarmAudio, startAlarmLoop, stopAlarmLoop } from '@/modules/alarm/player';
+import { startAlarmVibration, stopAlarmVibration } from '@/modules/alarm/vibration';
 
 export default function AlarmTestOnboardingScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function AlarmTestOnboardingScreen() {
     return () => {
       if (timer.current) clearTimeout(timer.current);
       stopAlarmLoop();
+      stopAlarmVibration();
     };
   }, []);
 
@@ -27,21 +29,24 @@ export default function AlarmTestOnboardingScreen() {
     if (playing) {
       if (timer.current) clearTimeout(timer.current);
       stopAlarmLoop();
+      stopAlarmVibration();
       setPlaying(false);
       return;
     }
 
     startAlarmLoop(settings.alarm_sound_id, false, settings.custom_alarm_uri);
+    if (settings.vibration_enabled) startAlarmVibration(settings.vibration_repeat);
     setPlaying(true);
     timer.current = setTimeout(() => {
       stopAlarmLoop();
+      stopAlarmVibration();
       setPlaying(false);
     }, 6000);
   };
 
   return (
     <OnboardingShell
-      step={8}
+      step={7}
       hero={<Mascot pose="alert" height={130} />}
       title={strings.onboarding.alarmTitle}
       body={strings.onboarding.alarmBody}

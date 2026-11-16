@@ -24,6 +24,8 @@ export const appSettingsSchema = z.object({
   custom_alarm_uri: z.string().nullable().default(null),
   appearance: z.enum(['system', 'light', 'dark']).default('light'),
   vibration_enabled: z.boolean().default(true),
+  /** Repeat the pattern until the alarm is ended, instead of one short buzz. */
+  vibration_repeat: z.boolean().default(true),
   repeat_until_dismissed: z.boolean().default(true),
   snooze_minutes: z.number().int().min(1).max(60).default(5),
   require_hold_to_dismiss: z.boolean().default(true),

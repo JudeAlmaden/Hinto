@@ -1,20 +1,18 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppButton, Card } from '@/components/ui/controls';
 import { Stack as VStack } from '@/components/ui/layout';
-import { confirmAction } from '@/components/ui/confirm';
 import { HoldButton } from '@/components/ui/hold-button';
 import { Mascot } from '@/components/ui/mascot';
 import { formatCopy, strings } from '@/constants/strings';
 import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { getDatabase } from '@/db/client';
 import {
-  dismissAlarmPresentation,
   getActiveAlarm,
   snoozeAlarm,
   subscribeToAlarm,
@@ -22,10 +20,9 @@ import {
   wakeNow,
 } from '@/modules/alarm/delivery';
 import type { ActiveAlarm } from '@/modules/alarm';
-import type { Journey, JourneyAlert } from '@/modules/journeys';
+import { TERMINAL_STATUSES, type Journey, type JourneyAlert } from '@/modules/journeys';
 import {
   clearJourneyAlertSnooze,
-  dismissJourneyAlert,
   getActiveJourney,
   getJourney,
   getLatestJourneyAlert,
@@ -35,6 +32,7 @@ import { endJourneySession } from '@/modules/location/session';
 import { DEFAULT_SETTINGS, type AppSettings } from '@/modules/settings/schema';
 import { getSettings } from '@/modules/settings/repository';
 import { formatClock, formatDistance } from '@/utils/format';
+import { openJourneyResult } from '@/utils/navigation';
 
 export default function AlarmScreen() {
   const router = useRouter();
@@ -46,6 +44,7 @@ export default function AlarmScreen() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(getActiveAlarm());
   const [now, setNow] = useState(() => Date.now());
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => subscribeToAlarm(setActiveAlarm), []);
 
@@ -97,73 +96,103 @@ export default function AlarmScreen() {
       customSoundUri: settings.custom_alarm_uri,
       snoozeMinutes: settings.snooze_minutes,
       vibration: settings.vibration_enabled,
+      vibrationRepeat: settings.vibration_repeat,
       repeatUntilDismissed: settings.repeat_until_dismissed,
       stageIndex: alert.stageIndex,
       estimateOnly: false,
     });
   }, [journey, alert, settings]);
 
-  const snoozedUntil = activeAlarm?.snoozedUntil ?? alert?.snoozedUntil ?? null;
+  // While this process holds a live alarm, it is the truth: after a snooze
+  // expires the alarm is ringing again even though the saved alert still carries
+  // the old snooze deadline. The row only decides when there is no live alarm
+  // (cold start in the middle of a snooze).
+  const snoozedUntil = activeAlarm
+    ? activeAlarm.snoozedUntil
+    : (alert?.snoozedUntil ?? null);
   const snoozed = snoozedUntil !== null && snoozedUntil > now;
 
-  const finish = async () => {
+  // The alarm cannot be left with the system back gesture: it keeps ringing and
+  // the only ways out are "I'm awake" or a deliberate snooze.
+  useEffect(() => {
+    if (snoozed) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [snoozed]);
+
+  const goHome = () => {
+    if (router.canDismiss()) router.dismissAll();
+    else router.replace('/');
+  };
+
+  // A ref guards the tap itself: `busy` only updates on the next render, which
+  // is too late for two presses in the same frame.
+  const acting = useRef(false);
+
+  const run = async (action: () => Promise<void>) => {
+    if (acting.current) return;
+    acting.current = true;
+    setBusy(true);
+    try {
+      await action();
+    } finally {
+      acting.current = false;
+      setBusy(false);
+    }
+  };
+
+  const finish = () => {
     if (!journey) return;
-    await endJourneySession(journey.id, 'completed');
-    router.replace({ pathname: '/history/[id]', params: { id: journey.id } });
-  };
-
-  const doSnooze = async () => {
-    if (!journey || !alert) return;
-    if (!getActiveAlarm()) {
-      await deliverAlarm({
-        journeyId: journey.id,
-        alertId: alert.id,
-        destinationName: journey.destinationName,
-        distanceM: alert.triggerDistanceM,
-        sound: settings.alarm_sound_id,
-      customSoundUri: settings.custom_alarm_uri,
-        snoozeMinutes: settings.snooze_minutes,
-        vibration: settings.vibration_enabled,
-        repeatUntilDismissed: settings.repeat_until_dismissed,
-        stageIndex: alert.stageIndex,
-        estimateOnly: false,
-      });
-    }
-
-    const db = await getDatabase();
-    const until = Date.now() + settings.snooze_minutes * 60_000;
-    await snoozeJourneyAlert(db, alert.id, until);
-    setAlert({ ...alert, snoozedUntil: until });
-    await snoozeAlarm(settings.snooze_minutes);
-  };
-
-  const doWakeNow = async () => {
-    if (alert) {
-      const db = await getDatabase();
-      await clearJourneyAlertSnooze(db, alert.id);
-      setAlert({ ...alert, snoozedUntil: null });
-    }
-    await wakeNow();
-  };
-
-  const doDismiss = () => {
-    confirmAction({
-      title: strings.alarm.dismissTitle,
-      body: strings.alarm.dismissBody,
-      confirmLabel: strings.alarm.dismiss,
-      onConfirm: () => {
-        void (async () => {
-          if (alert) {
-            const db = await getDatabase();
-            await dismissJourneyAlert(db, alert.id);
-          }
-          await dismissAlarmPresentation();
-          if (journey) router.replace({ pathname: '/journey/[id]', params: { id: journey.id } });
-          else router.replace('/');
-        })();
-      },
+    void run(async () => {
+      await endJourneySession(journey.id, 'completed');
+      openJourneyResult(router, journey.id);
     });
   };
+
+  const doSnooze = () => {
+    if (!journey || !alert) return;
+    void run(async () => {
+      // Cold start mid-alert: the screen owns presentation until the user acts.
+      if (!getActiveAlarm()) {
+        await deliverAlarm({
+          journeyId: journey.id,
+          alertId: alert.id,
+          destinationName: journey.destinationName,
+          distanceM: alert.triggerDistanceM,
+          sound: settings.alarm_sound_id,
+          customSoundUri: settings.custom_alarm_uri,
+          snoozeMinutes: settings.snooze_minutes,
+          vibration: settings.vibration_enabled,
+          vibrationRepeat: settings.vibration_repeat,
+          repeatUntilDismissed: settings.repeat_until_dismissed,
+          stageIndex: alert.stageIndex,
+          estimateOnly: false,
+        });
+      }
+
+      const db = await getDatabase();
+      const until = Date.now() + settings.snooze_minutes * 60_000;
+      await snoozeJourneyAlert(db, alert.id, until);
+      setAlert({ ...alert, snoozedUntil: until });
+      await snoozeAlarm(settings.snooze_minutes);
+    });
+  };
+
+  const doWakeNow = () => {
+    void run(async () => {
+      if (alert) {
+        const db = await getDatabase();
+        await clearJourneyAlertSnooze(db, alert.id);
+        setAlert({ ...alert, snoozedUntil: null });
+      }
+      await wakeNow();
+    });
+  };
+
+  // A notification for a journey that already ended (or one left under the
+  // stack) must not show live alarm controls: ending it again would rewrite the
+  // saved record.
+  const ended = journey !== null && TERMINAL_STATUSES.includes(journey.status);
 
   const distance = alert ? formatDistance(alert.triggerDistanceM, settings.distance_unit) : '';
 
@@ -171,17 +200,13 @@ export default function AlarmScreen() {
     <ThemedView style={styles.root}>
       <Stack.Screen options={{ gestureEnabled: false, headerShown: false }} />
       <SafeAreaView style={styles.safe}>
-        {!journey ? (
+        {!journey || ended ? (
           <VStack center flex gap="three">
             <ThemedText style={styles.headline}>{strings.alarm.headline}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {strings.alarm.noJourney}
             </ThemedText>
-            <AppButton
-              label={strings.alarm.goHome}
-              variant="secondary"
-              onPress={() => router.replace('/')}
-            />
+            <AppButton label={strings.alarm.goHome} variant="secondary" onPress={goHome} />
           </VStack>
         ) : snoozed ? (
           <VStack center flex gap="three">
@@ -194,10 +219,15 @@ export default function AlarmScreen() {
                 })}
               </ThemedText>
             </Card>
-            <AppButton label={strings.alarm.wakeNow} onPress={() => void doWakeNow()} />
+            <AppButton
+              label={strings.alarm.wakeNow}
+              disabled={busy}
+              onPress={() => void doWakeNow()}
+            />
             <AppButton
               label={strings.alarm.imAwake}
               variant="secondary"
+              disabled={busy}
               onPress={() => void finish()}
             />
             <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
@@ -219,16 +249,24 @@ export default function AlarmScreen() {
 
             <VStack gap="two" style={styles.actions}>
               {settings.require_hold_to_dismiss ? (
-                <HoldButton label={strings.alarm.imAwake} onConfirm={() => void finish()} />
+                <HoldButton
+                  label={strings.alarm.imAwake}
+                  disabled={busy}
+                  onConfirm={() => void finish()}
+                />
               ) : (
-                <AppButton label={strings.alarm.imAwake} onPress={() => void finish()} />
+                <AppButton
+                  label={strings.alarm.imAwake}
+                  disabled={busy}
+                  onPress={() => void finish()}
+                />
               )}
               <AppButton
                 label={formatCopy(strings.alarm.snooze, { minutes: settings.snooze_minutes })}
                 variant="secondary"
+                disabled={busy}
                 onPress={() => void doSnooze()}
               />
-              <AppButton label={strings.alarm.dismiss} variant="ghost" onPress={doDismiss} />
             </VStack>
             <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
               {strings.alarm.limitation}

@@ -1,12 +1,11 @@
-import * as Device from 'expo-device';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { AppButton, Card, NavRow, SectionLabel } from '@/components/ui/controls';
+import { Card, NavRow, SectionLabel } from '@/components/ui/controls';
 import { Screen } from '@/components/ui/screen';
-import { formatCopy, strings } from '@/constants/strings';
+import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import { useTracking } from '@/hooks/use-tracking';
 import type { PermissionMap } from '@/modules/permissions';
@@ -102,6 +101,10 @@ export default function PermissionsScreen() {
           label={strings.permissions.batteryOptimisation}
           value={state.batteryOptimisation ? strings.permissions.enabled : strings.permissions.disabled}
           onPress={() => void openBatterySettings()}
+        />
+        <NavRow
+          label={strings.permissions.openSettings}
+          onPress={() => void openAppSettings()}
           last
         />
       </View>
@@ -113,33 +116,10 @@ export default function PermissionsScreen() {
           </ThemedText>
         </Card>
       ) : (
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="small" themeColor="textSecondary" style={styles.statusNote}>
           {strings.permissions.batteryOk}
         </ThemedText>
       )}
-
-      <Card style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatCopy(strings.permissions.batteryHint, {
-            manufacturer: Device.manufacturer ?? 'Some',
-          })}
-        </ThemedText>
-        <AppButton
-          label={strings.permissions.openBattery}
-          variant="secondary"
-          onPress={() => void openBatterySettings()}
-        />
-      </Card>
-
-      <Card style={styles.card}>
-        <ThemedText type="small" themeColor="textSecondary">
-          {strings.permissions.fixInSettings}
-        </ThemedText>
-        <AppButton
-          label={strings.permissions.openSettings}
-          onPress={() => void openAppSettings()}
-        />
-      </Card>
     </Screen>
   );
 }
@@ -151,5 +131,8 @@ const styles = StyleSheet.create({
   },
   warning: {
     color: '#F5A623',
+  },
+  statusNote: {
+    paddingTop: Spacing.two,
   },
 });

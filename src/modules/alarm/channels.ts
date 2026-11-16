@@ -10,16 +10,21 @@ import {
   AndroidAudioUsage,
   AndroidImportance,
   AndroidNotificationVisibility,
+  setNotificationCategoryAsync,
   setNotificationChannelAsync,
 } from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { strings } from '@/constants/strings';
 import { capture } from '@/modules/diagnostics';
 
 import { NOTIFICATION_CHANNELS, type AlarmSoundId } from '.';
 
 export const ALARM_CHANNEL_ID = NOTIFICATION_CHANNELS.alarm;
 export const JOURNEY_CHANNEL_ID = NOTIFICATION_CHANNELS.journey;
+
+export const ALARM_CATEGORY_ID = 'hinto_alarm';
+export const ALARM_ACTION_STOP_ID = 'alarm_action_stop';
 
 let configured = false;
 
@@ -55,6 +60,16 @@ export async function ensureNotificationChannels(): Promise<void> {
         },
       },
     });
+
+    await setNotificationCategoryAsync(ALARM_CATEGORY_ID, [
+      {
+        identifier: ALARM_ACTION_STOP_ID,
+        buttonTitle: strings.alarm.actionAwake,
+        options: {
+          opensAppToForeground: false,
+        },
+      },
+    ]);
 
     configured = true;
   } catch (error) {

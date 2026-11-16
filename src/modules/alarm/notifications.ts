@@ -13,7 +13,7 @@ import { capture } from '@/modules/diagnostics';
 import { formatDistance } from '@/utils/format';
 
 import type { AlarmRequest } from '.';
-import { ALARM_CHANNEL_ID, soundFileName } from './channels';
+import { ALARM_CATEGORY_ID, ALARM_CHANNEL_ID, soundFileName } from './channels';
 
 export function alarmDeepLink(journeyId: string): string {
   return `/alarm?journeyId=${encodeURIComponent(journeyId)}`;
@@ -40,7 +40,7 @@ export async function postAlarmNotification(request: AlarmRequest): Promise<void
           distance: formatDistance(request.distanceM, 'km'),
         })}`,
         sound: soundFileName(request.sound),
-        categoryIdentifier: 'hinto-alarm',
+        categoryIdentifier: ALARM_CATEGORY_ID,
         data: {
           url: alarmDeepLink(request.journeyId),
           journeyId: request.journeyId,
@@ -69,6 +69,7 @@ export async function scheduleSnoozeNotification(
           distance: formatDistance(request.distanceM, 'km'),
         })}`,
         sound: soundFileName(request.sound),
+        categoryIdentifier: ALARM_CATEGORY_ID,
         data: { url: alarmDeepLink(request.journeyId), journeyId: request.journeyId },
       },
       trigger: {

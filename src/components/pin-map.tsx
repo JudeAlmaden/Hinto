@@ -53,6 +53,8 @@ interface Props {
   onPick?: (point: PinPoint) => void;
   /** Fixed-centre mode: reports the map centre after every gesture. */
   onCenterChange?: (point: PinPoint) => void;
+  /** Optional handler when user taps the map surface (e.g. to dismiss keyboard). */
+  onPress?: () => void;
   centerPin?: boolean;
   onFailure: () => void;
   style?: StyleProp<ViewStyle>;
@@ -75,16 +77,19 @@ export function PinMap({
   radiusM,
   onPick,
   onCenterChange,
+  onPress,
   centerPin = false,
   onFailure,
   style,
 }: Props) {
   const circleData = useMemo(() => {
     if (!radiusM) return null;
-    const target = centerPin ? center : pin;
-    if (!target) return null;
+    // The radius always belongs to the pin. In centre mode the camera sits still
+    // and only the reported point moves, so `center` must not win here — that is
+    // what left the circle behind while the pin slid across the map.
+    const target = pin ?? center;
     return makeCirclePolygon(target.longitude, target.latitude, radiusM);
-  }, [radiusM, centerPin, center, pin]);
+  }, [radiusM, center, pin]);
 
   return (
     <View style={[styles.wrap, style]}>
@@ -95,14 +100,13 @@ export function PinMap({
         compass={false}
         attribution
         attributionPosition={{ bottom: 6, right: 6 }}
-        onPress={
-          onPick
-            ? (event) => {
-                const [longitude, latitude] = event.nativeEvent.lngLat;
-                onPick({ latitude, longitude });
-              }
-            : undefined
-        }
+        onPress={(event) => {
+          onPress?.();
+          if (onPick) {
+            const [longitude, latitude] = event.nativeEvent.lngLat;
+            onPick({ latitude, longitude });
+          }
+        }}
         onRegionDidChange={
           onCenterChange
             ? (event) => {
@@ -131,18 +135,18 @@ export function PinMap({
             <Layer
               id="radius-fill"
               type="fill"
-              style={{
-                fillColor: '#D99A43',
-                fillOpacity: 0.18,
+              paint={{
+                'fill-color': '#D99A43',
+                'fill-opacity': 0.18,
               }}
             />
             <Layer
               id="radius-line"
               type="line"
-              style={{
-                lineColor: '#D99A43',
-                lineWidth: 2,
-                lineDasharray: [2, 2],
+              paint={{
+                'line-color': '#D99A43',
+                'line-width': 2,
+                'line-dasharray': [2, 2],
               }}
             />
           </GeoJSONSource>

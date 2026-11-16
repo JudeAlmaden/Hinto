@@ -1,7 +1,17 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  type KeyboardEvent,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PinMap } from '@/components/pin-map';
@@ -15,13 +25,16 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Icon } from '@/components/ui/icon';
 import { DEFAULT_RADIUS_M } from '@/constants/alarms';
 import { strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
+import { FontFamilies, Radii, Spacing } from '@/constants/theme';
 import { isValidLatitude, isValidLongitude } from '@/modules/geofence/distance';
+import { usePlaces } from '@/hooks/use-places';
 import { useSettings } from '@/hooks/use-settings';
 import { useTheme } from '@/hooks/use-theme';
 import { currentLocation } from '@/modules/location/service';
 import { offlinePinLabel, type PinPoint } from '@/modules/maps';
 import { suggestPlaceName } from '@/modules/maps/label';
+import { SEARCH, searchPlacesOnline } from '@/modules/places/search';
+import type { PlaceSearchResult } from '@/modules/places';
 import { formatCoordinates, formatRadius } from '@/utils/format';
 import { journeySetupParams } from '@/utils/navigation';
 
@@ -33,6 +46,7 @@ export default function PinDestinationScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ intent?: string }>();
   const { settings } = useSettings();
+  const { places } = usePlaces();
   const net = useNetInfo();
   const offline = net.isConnected === false;
   const paramIntent =
@@ -55,6 +69,81 @@ export default function PinDestinationScreen() {
   const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingPlace, setSavingPlace] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e: KeyboardEvent) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (offline || trimmed.length < SEARCH.minCharacters) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const timer = setTimeout(() => {
+      setSearchLoading(true);
+      searchPlacesOnline(trimmed, { signal: controller.signal })
+        .then((found) => {
+          if (cancelled) return;
+          setSearchResults(found);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setSearchResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
+    }, SEARCH.debounceMs);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery, offline]);
+
+  const matchingPlaces =
+    searchQuery.trim().length >= 1
+      ? places.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+      : [];
+
+  const selectLocation = (loc: { latitude: number; longitude: number; name: string }) => {
+    const next = { latitude: loc.latitude, longitude: loc.longitude };
+    applyPoint(next);
+    setCenter(next);
+    setMapKey((value) => value + 1);
+    setName(loc.name);
+    setNameEdited(true);
+    setError(null);
+    setMode('map');
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchFocused(false);
+    Keyboard.dismiss();
+  };
 
   const applyPoint = (next: PinPoint) => {
     setPoint(next);
@@ -190,16 +279,24 @@ export default function PinDestinationScreen() {
 
   return (
     <ThemedView style={styles.root}>
-      <View style={styles.mapArea}>
+      <View style={[styles.mapArea, keyboardHeight > 0 && !searchFocused && styles.mapAreaCompact]}>
         {mode === 'map' ? (
           <PinMap
             key={mapKey}
             center={center}
             centerPin
+            /* The circle is drawn at the live point, not the initial camera centre. */
+            pin={point}
             radiusM={effectiveIntent === 'journey' ? radius : undefined}
+            onPress={() => {
+              Keyboard.dismiss();
+              if (searchFocused) setSearchFocused(false);
+            }}
             onCenterChange={(next) => {
               applyPoint(next);
               setError(null);
+              if (searchFocused) setSearchFocused(false);
+              Keyboard.dismiss();
             }}
             onFailure={failMap}
             style={StyleSheet.absoluteFill}
@@ -209,7 +306,7 @@ export default function PinDestinationScreen() {
         )}
 
         <SafeAreaView edges={['top']} style={styles.headerSafe} pointerEvents="box-none">
-          <Row gap="two" px="three" pt="two" pointerEvents="box-none">
+          <Row gap="two" px="three" pt="two" pointerEvents="box-none" align="center">
             <Pressable
               accessibilityRole="button"
               onPress={() => router.back()}
@@ -217,17 +314,106 @@ export default function PinDestinationScreen() {
               style={[styles.circle, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               <Icon name="chevron-back" size={22} themeColor="text" />
             </Pressable>
-            <View style={[styles.titlePill, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <ThemedText style={styles.title} numberOfLines={1}>
-                {effectiveIntent === 'save'
-                  ? strings.destination.saveTitle
-                  : strings.destination.pinTitle}
-              </ThemedText>
+
+            <View
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: searchFocused ? theme.accent : theme.border,
+                },
+              ]}>
+              <Icon name="search" size={18} color={theme.textSecondary} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  if (text.trim().length < SEARCH.minCharacters) {
+                    setSearchResults([]);
+                    setSearchLoading(false);
+                  }
+                }}
+                onFocus={() => setSearchFocused(true)}
+                placeholder={strings.destination.searchPlaceholder}
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.searchInput, { color: theme.text }]}
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {searchLoading ? (
+                <ActivityIndicator size="small" color={theme.accent} style={styles.searchSpinner} />
+              ) : searchQuery.length > 0 ? (
+                <Pressable
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                  hitSlop={8}>
+                  <Icon name="close-circle" size={18} color={theme.textSecondary} />
+                </Pressable>
+              ) : null}
             </View>
           </Row>
+
+          {searchFocused && (matchingPlaces.length > 0 || searchResults.length > 0 || searchLoading) ? (
+            <View
+              style={[
+                styles.dropdown,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.border,
+                },
+              ]}>
+              <ScrollView
+                style={styles.dropdownScroll}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}>
+                {matchingPlaces.map((place) => (
+                  <Pressable
+                    key={`saved-${place.id}`}
+                    onPress={() => selectLocation(place)}
+                    style={({ pressed }) => [
+                      styles.dropdownItem,
+                      { borderBottomColor: theme.border, opacity: pressed ? 0.7 : 1 },
+                    ]}>
+                    <Icon name="bookmark" size={18} color={theme.accent} />
+                    <View style={styles.dropdownText}>
+                      <ThemedText type="smallBold" numberOfLines={1}>
+                        {place.name}
+                      </ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                        {strings.destination.savedPlaces}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+                ))}
+                {searchResults.map((result) => (
+                  <Pressable
+                    key={`${result.name}-${result.latitude}-${result.longitude}`}
+                    onPress={() => selectLocation(result)}
+                    style={({ pressed }) => [
+                      styles.dropdownItem,
+                      { borderBottomColor: theme.border, opacity: pressed ? 0.7 : 1 },
+                    ]}>
+                    <Icon name="location-outline" size={18} color={theme.textSecondary} />
+                    <View style={styles.dropdownText}>
+                      <ThemedText type="smallBold" numberOfLines={1}>
+                        {result.name}
+                      </ThemedText>
+                      {result.subtitle ? (
+                        <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                          {result.subtitle}
+                        </ThemedText>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
         </SafeAreaView>
 
-        {mode === 'map' ? (
+        {mode === 'map' && (!keyboardHeight || searchFocused) ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={strings.destination.recenter}
@@ -238,15 +424,24 @@ export default function PinDestinationScreen() {
         ) : null}
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardWrap}>
+      <View
+        style={[
+          styles.keyboardWrap,
+          keyboardHeight > 0 && !searchFocused && { paddingBottom: keyboardHeight },
+        ]}>
         <BottomSheet style={styles.sheetContainer}>
           <ScrollView
             style={styles.sheetScroll}
             contentContainerStyle={styles.sheetContent}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled">
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onScrollBeginDrag={() => {
+              if (searchFocused) {
+                setSearchFocused(false);
+                Keyboard.dismiss();
+              }
+            }}>
             {paramIntent === null ? (
               <SegmentedControl
                 options={[
@@ -305,6 +500,8 @@ export default function PinDestinationScreen() {
               placeholder={suggesting ? strings.common.loading : strings.place.namePlaceholder}
               hint={point ? formatCoordinates(point.latitude, point.longitude) : undefined}
               autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
             />
 
             {effectiveIntent === 'journey' ? (
@@ -367,7 +564,7 @@ export default function PinDestinationScreen() {
             </Row>
           </ScrollView>
         </BottomSheet>
-      </KeyboardAvoidingView>
+      </View>
     </ThemedView>
   );
 }
@@ -378,6 +575,10 @@ const styles = StyleSheet.create({
   },
   mapArea: {
     flex: 1,
+  },
+  mapAreaCompact: {
+    flex: 0,
+    height: 150,
   },
   headerSafe: {
     position: 'absolute',
@@ -392,6 +593,53 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  searchBar: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.three,
+    gap: Spacing.two,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamilies.regular,
+    paddingVertical: 0,
+  },
+  searchSpinner: {
+    marginRight: Spacing.one,
+  },
+  dropdown: {
+    marginHorizontal: Spacing.three,
+    marginTop: Spacing.two,
+    borderRadius: Radii.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    maxHeight: 220,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  dropdownScroll: {
+    maxHeight: 220,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    gap: Spacing.two,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  dropdownText: {
+    flex: 1,
+    gap: 2,
   },
   titlePill: {
     paddingHorizontal: Spacing.three,
@@ -421,9 +669,11 @@ const styles = StyleSheet.create({
   sheetContainer: {
     maxHeight: 460,
     paddingHorizontal: 0,
+    flexShrink: 1,
   },
   sheetScroll: {
     maxHeight: 420,
+    flexShrink: 1,
   },
   sheetContent: {
     paddingHorizontal: Spacing.three,

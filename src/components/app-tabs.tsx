@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { strings } from '@/constants/strings';
-import { Radii, Spacing } from '@/constants/theme';
+import { FontFamilies, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 const TAB_ICONS: Record<string, { active: IconName; inactive: IconName }> = {
@@ -15,10 +16,6 @@ const TAB_ICONS: Record<string, { active: IconName; inactive: IconName }> = {
   settings: { active: 'settings', inactive: 'settings-outline' },
 };
 
-/**
- * React Navigation 7 passes either `navigation` or `navigateToTab` to a custom
- * tab bar, so both are accepted here.
- */
 type HintoTabBarProps = {
   state: { index: number; routes: { key: string; name: string }[] };
   descriptors: Record<string, { options: { title?: string } }>;
@@ -38,68 +35,64 @@ function HintoTabBar({ state, descriptors, navigation, navigateToTab }: HintoTab
   return (
     <View
       style={[
-        styles.wrap,
-        { paddingBottom: Math.max(insets.bottom, Spacing.two) },
+        styles.bar,
+        {
+          backgroundColor: theme.backgroundElement,
+          borderTopColor: theme.border,
+          paddingBottom: Math.max(insets.bottom, Spacing.half),
+        },
       ]}>
-      <View
-        style={[
-          styles.bar,
-          { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-        ]}>
-        {state.routes.map((route, index) => {
-          const focused = state.index === index;
-          const options = descriptors[route.key].options;
-          const icons = TAB_ICONS[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const options = descriptors[route.key].options;
+        const icons = TAB_ICONS[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
 
-          const onPress = () => {
-            const event = navigation?.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (focused || event?.defaultPrevented) return;
-            if (navigation) navigation.navigate(route.name);
-            else navigateToTab?.(route.key);
-          };
+        const onPress = () => {
+          void Haptics.selectionAsync();
 
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={options.title}
-              onPress={onPress}
-              style={styles.item}>
-              <View
-                style={[
-                  styles.iconSlot,
-                  focused && { backgroundColor: theme.accentSoft },
-                ]}>
-                <Icon
-                  name={focused ? icons.active : icons.inactive}
-                  size={20}
-                  color={focused ? theme.accent : theme.textSecondary}
-                />
-              </View>
-              <ThemedText
-                type="small"
-                numberOfLines={1}
-                style={[
-                  styles.label,
-                  { color: focused ? theme.accent : theme.textSecondary },
-                  focused && styles.labelActive,
-                ]}>
-                {options.title}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+          const event = navigation?.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (focused || event?.defaultPrevented) return;
+          if (navigation) navigation.navigate(route.name);
+          else navigateToTab?.(route.key);
+        };
+
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={options.title}
+            onPress={onPress}
+            style={({ pressed }) => [styles.item, { opacity: pressed ? 0.65 : 1 }]}>
+            <View style={styles.iconWrap}>
+              <Icon
+                name={focused ? icons.active : icons.inactive}
+                size={22}
+                color={focused ? theme.accent : theme.textSecondary}
+              />
+            </View>
+            <ThemedText
+              numberOfLines={1}
+              style={[
+                styles.label,
+                {
+                  color: focused ? theme.accent : theme.textSecondary,
+                  fontWeight: focused ? '700' : '500',
+                },
+              ]}>
+              {options.title}
+            </ThemedText>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
-/** Bottom navigation for the four MVP destinations (plan §4.1). */
 export default function AppTabs() {
   return (
     <Tabs
@@ -114,44 +107,37 @@ export default function AppTabs() {
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  bar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: Spacing.three,
-    paddingTop: Spacing.five,
-    // The raised tab sits above the bar; keep the whole area tappable.
-    pointerEvents: 'box-none',
-  },
-  bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.one,
-    paddingVertical: Spacing.one,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 8,
   },
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    paddingVertical: Spacing.one,
+    paddingVertical: 2,
+    minHeight: 46,
   },
-  iconSlot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
+  iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    height: 24,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  labelActive: {
-    fontWeight: '700',
+    fontSize: 10,
+    fontFamily: FontFamilies.medium,
+    letterSpacing: 0.15,
+    marginTop: 2,
   },
 });

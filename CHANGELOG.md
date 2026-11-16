@@ -5,6 +5,34 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-17
+
+### Added
+- **Lock-screen 1-tap "I'm awake" notification action**: Registered `hinto_alarm` notification category with `alarm_action_stop` action (`opensAppToForeground: false`), allowing commuters to instantly silence alarms directly from lock-screen notifications without unlocking the device.
+- **Pin destination search bar**: Debounced OSM Photon place search and matching saved places directly within `destination/pin.tsx`, centering the map camera, placing the pin, and auto-filling place names on tap.
+- **Continuous looping vibration**: Added `vibration_repeat` setting (default on) utilizing native Android HAL repeating vibration pattern until stopped or snoozed, with configurable toggle in Settings and Journey options.
+- **Background health diagnostics**: Added Background section in diagnostics inspecting location service status, battery optimization, and sample freshness, plus a five-minute screen-off verification drill.
+- **Quick exit to Home on completed journeys**: Primary sticky "Go to Home" button on `history/[id].tsx` summary view.
+
+### Changed
+- **Apple HIG-inspired docked bottom navigation**: Overhauled tab bar from floating pill into a docked 50px native bar with hairline top border, subtle elevation, compact 22px icons, and tactile `Haptics.selectionAsync()` feedback; reduced screen bottom inset padding from 116px to 76px.
+- **Streamlined onboarding flow**: Merged OEM Auto-Start instructions into the Battery step with brand-specific guidance (ColorOS/Oppo, MIUI, OneUI, EMUI), reducing onboarding from 9 to 8 steps and auto-forwarding to the alarm test.
+- **OEM battery and background settings resolution**: Replaced broken OEM private component intents with direct App Info navigation (`openAppSettingsPage`) for aggressive OEMs (Oppo, Realme, OnePlus, Xiaomi, Vivo) where startup activities are non-exported.
+- **Alarm dismissal & navigation flow**: Removed redundant Dismiss action; hardware/system back button is prevented during ringing alarms; back navigation cleans up journey stack so finished trips cannot be re-opened.
+
+### Fixed
+- **Pin destination keyboard avoidance**: Dynamically compacted map height, lifted the bottom sheet by native keyboard height, and enabled map-tap / on-drag dismiss so the place name field, distance chips, and "Use this point" action button remain fully visible and operable when the virtual keyboard opens.
+- **Location service unhandled rejection**: Wrapped `getLastKnownPositionAsync` in `try/catch` to gracefully handle ungranted location permissions without crashing or throwing `CodedError`.
+- **MapLibre deprecation warning**: Replaced deprecated `style` prop on MapLibre `<Layer>` components with `paint` using kebab-case style-spec properties (`'fill-color'`, `'line-color'`).
+- **Home readiness latency**: Added `useFocusEffect` and active `AppState` foreground listener on `(tabs)/index.tsx` so returning from Android Settings immediately refreshes permissions and readiness cards.
+- **Pin radius tracking**: Map circle overlay dynamically tracks crosshair coordinates as user drags the pin.
+- **Duplicate alarm screen stacks**: Root layout deduplicates in-flight alarm navigation on cold start, push notifications, and live triggers.
+
+### Technical
+- Modified: `app.config.ts`, `src/app/(tabs)/index.tsx`, `src/app/(tabs)/settings.tsx`, `src/app/_layout.tsx`, `src/app/alarm-test.tsx`, `src/app/alarm.tsx`, `src/app/destination/pin.tsx`, `src/app/history/[id].tsx`, `src/app/journey/[id].tsx`, `src/app/journey/[id]/options.tsx`, `src/app/onboarding/alarm-test.tsx`, `src/app/onboarding/auto-start.tsx`, `src/app/onboarding/battery.tsx`, `src/app/settings/diagnostics.tsx`, `src/app/settings/permissions.tsx`, `src/components/app-tabs.tsx`, `src/components/onboarding-shell.tsx`, `src/components/permission-step.tsx`, `src/components/pin-map.tsx`, `src/components/ui/screen.tsx`, `src/constants/strings.ts`, `src/constants/theme.ts`, `src/modules/alarm/channels.ts`, `src/modules/alarm/delivery.ts`, `src/modules/alarm/index.ts`, `src/modules/alarm/notifications.ts`, `src/modules/location/engine.ts`, `src/modules/location/service.ts`, `src/modules/permissions/service.ts`, `src/modules/settings/schema.ts`, `src/modules/settings/__tests__/schema.test.ts`, `src/utils/navigation.ts`, `package.json`, `CHANGELOG.md`
+- New: `src/modules/alarm/__tests__/notifications.test.ts`, `src/modules/alarm/vibration.ts`
+- Tests: 146 passing — lint/typecheck clean
+
 ## [0.6.2] - 2026-11-16
 
 ### Fixed

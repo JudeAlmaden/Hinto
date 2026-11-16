@@ -6,11 +6,19 @@ import {
   PlusJakartaSans_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRootNavigationState, useRouter } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+  usePathname,
+  useRootNavigationState,
+  useRouter,
+} from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
@@ -21,14 +29,14 @@ import { ONBOARDING_VERSION } from '@/constants/app';
 import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import { getDatabase, openDatabase } from '@/db/client';
-import { ensureNotificationChannels } from '@/modules/alarm/channels';
-import { subscribeToAlarm } from '@/modules/alarm/delivery';
+import { ALARM_ACTION_STOP_ID, ensureNotificationChannels } from '@/modules/alarm/channels';
+import { dismissAlarmPresentation, subscribeToAlarm } from '@/modules/alarm/delivery';
 import {
   configureNotificationHandler,
   extractAlarmJourneyId,
 } from '@/modules/alarm/notifications';
 import { markSessionStart } from '@/modules/diagnostics';
-import { bootstrapJourneySession } from '@/modules/location/session';
+import { bootstrapJourneySession, endJourneySession } from '@/modules/location/session';
 import { useResolvedScheme } from '@/hooks/use-appearance';
 import { useAppearance } from '@/modules/settings/appearance';
 import { getSettings } from '@/modules/settings/repository';
@@ -57,6 +65,34 @@ export default function RootLayout() {
   const router = useRouter();
   const navigationState = useRootNavigationState();
   const navigationKey = navigationState?.key;
+  // The notification tap, the cold-start response and the live alarm event can
+  // all fire for the same alert, and a snooze re-fires the same journey minutes
+  // later. Both are handled here: never stack two alarm screens, and never push
+  // a second one on top of the screen that is already ringing.
+  const lastAlarmRoute = useRef<{ key: string; at: number } | null>(null);
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  const openAlarm = useCallback(
+    (journeyId: string | null) => {
+      // The mounted alarm screen already follows the alarm state; pushing again
+      // would leave a duplicate behind the one on screen.
+      if (pathnameRef.current === '/alarm') return;
+
+      const key = `journey:${journeyId ?? 'none'}`;
+      const now = Date.now();
+      const previous = lastAlarmRoute.current;
+      if (previous && previous.key === key && now - previous.at < 5000) return;
+      lastAlarmRoute.current = { key, at: now };
+      router.push(journeyId ? { pathname: '/alarm', params: { journeyId } } : '/alarm');
+    },
+    [router],
+  );
+
   const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
@@ -76,31 +112,38 @@ export default function RootLayout() {
 
     configureNotificationHandler();
 
-    // A tap on the alarm notification must never silently discard the alert.
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
       const journeyId = extractAlarmJourneyId(response);
-      router.push(journeyId ? { pathname: '/alarm', params: { journeyId } } : '/alarm');
-    });
+      if (response.actionIdentifier === ALARM_ACTION_STOP_ID) {
+        if (journeyId) {
+          void endJourneySession(journeyId, 'completed').catch(() => undefined);
+        } else {
+          void dismissAlarmPresentation().catch(() => undefined);
+        }
+        return;
+      }
+      if (journeyId) openAlarm(journeyId);
+    };
+
+    // A tap on the alarm notification or its action buttons must be handled honestly.
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
 
     void Notifications.getLastNotificationResponseAsync()
       .then((response) => {
-        const journeyId = extractAlarmJourneyId(response);
-        if (journeyId) router.push({ pathname: '/alarm', params: { journeyId } });
+        if (response) handleNotificationResponse(response);
       })
       .catch(() => undefined);
 
     // When alarm triggers while app is open, navigate directly to alarm screen
     const alarmSubscription = subscribeToAlarm((active) => {
-      if (active) {
-        router.push({ pathname: '/alarm', params: { journeyId: active.journeyId } });
-      }
+      if (active) openAlarm(active.journeyId);
     });
 
     return () => {
       subscription.remove();
       alarmSubscription();
     };
-  }, [router]);
+  }, [openAlarm, router]);
 
   useEffect(() => {
     if (Platform.OS === 'web' || !navigationKey) return;

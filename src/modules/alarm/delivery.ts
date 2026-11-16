@@ -8,8 +8,6 @@
  * so it can run from a background task as well as from a screen.
  */
 
-import * as Haptics from 'expo-haptics';
-
 import { capture } from '@/modules/diagnostics';
 
 import type { ActiveAlarm, AlarmRequest } from '.';
@@ -21,6 +19,7 @@ import {
   scheduleSnoozeNotification,
 } from './notifications';
 import { configureAlarmAudio, startAlarmLoop, stopAlarmLoop } from './player';
+import { startAlarmVibration, stopAlarmVibration } from './vibration';
 
 let active: ActiveAlarm | null = null;
 let snoozeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -50,14 +49,6 @@ function clearSnoozeTimer(): void {
   }
 }
 
-async function vibrate(): Promise<void> {
-  try {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-  } catch {
-    // Vibration is a bonus; the channel also has a vibration pattern.
-  }
-}
-
 export async function deliverAlarm(request: AlarmRequest): Promise<void> {
   active = { ...request, startedAt: Date.now(), snoozedUntil: null };
   emit();
@@ -68,7 +59,8 @@ export async function deliverAlarm(request: AlarmRequest): Promise<void> {
   await configureAlarmAudio();
   startAlarmLoop(request.sound, request.repeatUntilDismissed, request.customSoundUri);
 
-  if (request.vibration) await vibrate();
+  // Vibration can be a repeating pattern; it stops with the alarm.
+  if (request.vibration) startAlarmVibration(request.vibrationRepeat);
 
   capture('trigger', 'alarm_delivered', {
     stage: request.stageIndex,
@@ -83,6 +75,7 @@ export async function dismissAlarmPresentation(): Promise<void> {
   await cancelNotification(snoozeNotificationId);
   snoozeNotificationId = null;
   stopAlarmLoop();
+  stopAlarmVibration();
   await dismissDeliveredAlarms();
   active = null;
   emit();
@@ -94,6 +87,7 @@ export async function snoozeAlarm(minutes: number): Promise<ActiveAlarm | null> 
   const snoozedUntil = Date.now() + minutes * 60_000;
   const request: AlarmRequest = { ...active, alertId: active.alertId };
   stopAlarmLoop();
+  stopAlarmVibration();
   await dismissDeliveredAlarms();
 
   active = { ...active, snoozedUntil };
@@ -126,7 +120,7 @@ export async function wakeNow(): Promise<void> {
 
   await configureAlarmAudio();
   startAlarmLoop(request.sound, request.repeatUntilDismissed, request.customSoundUri);
-  if (request.vibration) await vibrate();
+  if (request.vibration) startAlarmVibration(request.vibrationRepeat);
 }
 
 export function isSnoozed(now = Date.now()): boolean {

@@ -16,6 +16,7 @@ describe('settings defaults (D5)', () => {
       custom_alarm_uri: null,
       appearance: 'light',
       vibration_enabled: true,
+      vibration_repeat: true,
       repeat_until_dismissed: true,
       snooze_minutes: 5,
       require_hold_to_dismiss: true,

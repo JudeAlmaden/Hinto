@@ -1,3 +1,4 @@
+import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
@@ -14,6 +15,10 @@ import {
 /**
  * Education before the system prompt, and a denial path that never loops the
  * prompt (spec §6, plan Phase 9).
+ *
+ * The step only ever advances from a press or from the system prompt resolving.
+ * The old code also advanced from every foreground event, which pushed the next
+ * step twice and left the onboarding stack stuck.
  */
 export function PermissionStep({
   permission,
@@ -36,37 +41,41 @@ export function PermissionStep({
 }) {
   const [state, setState] = useState<PermissionState | null>(null);
   const appState = useRef(AppState.currentState);
+  const isFocused = useIsFocused();
+  const asking = useRef(false);
 
-  const refresh = () => {
+  useEffect(() => {
+    let active = true;
     void readPermissions()
       .then((permissions) => {
-        const next = permissions[permission];
-        setState(next);
-        // Auto-advance if user granted the permission in Settings
-        if (next.status === 'granted') onContinue();
+        if (active) setState(permissions[permission]);
       })
-      .catch(() => setState(null));
-  };
-
-  // Initial read
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => {
+        if (active) setState(null);
+      });
+    return () => {
+      active = false;
+    };
   }, [permission]);
 
-  // Re-read when app returns to foreground (user came back from Settings)
+  // Re-read when the user comes back from Settings; only the visible step
+  // reacts, so steps further down the stack cannot navigate on their own.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (appState.current?.match(/inactive|background/) && nextState === 'active') {
-        refresh();
-      }
+      const returning =
+        Boolean(appState.current?.match(/inactive|background/)) && nextState === 'active';
       appState.current = nextState;
+      if (!returning || !isFocused) return;
+
+      void readPermissions()
+        .then((permissions) => setState(permissions[permission]))
+        .catch(() => undefined);
     });
     return () => sub.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permission]);
+  }, [permission, isFocused]);
 
-  const denied = state?.status === 'denied';
+  const granted = state?.status === 'granted';
+  const denied = state?.status === 'denied' && state.canAskAgain === false;
 
   const allowLabel =
     permission === 'foregroundLocation'
@@ -76,9 +85,27 @@ export function PermissionStep({
         : strings.permissions.allowNotifications;
 
   const ask = async () => {
-    const next = await requestPermission(permission);
-    setState(next);
-    if (next.status === 'granted') onContinue();
+    if (asking.current) return;
+    asking.current = true;
+    try {
+      const next = await requestPermission(permission);
+      setState(next);
+      if (next.status === 'granted') onContinue();
+    } finally {
+      asking.current = false;
+    }
+  };
+
+  const primary = () => {
+    if (granted) {
+      onContinue();
+      return;
+    }
+    if (denied) {
+      void openAppSettings();
+      return;
+    }
+    void ask();
   };
 
   const heroMascot = denied ? (
@@ -98,13 +125,16 @@ export function PermissionStep({
       title={denied ? deniedTitle : title}
       body={denied ? deniedBody : body}
       note={denied ? strings.permissions.fixInSettings : note}
-      primaryLabel={denied ? strings.permissions.openSettings : allowLabel}
-      onPrimary={() => {
-        if (denied) void openAppSettings();
-        else void ask();
-      }}
-      secondaryLabel={denied ? strings.permissions.skipForNow : strings.permissions.notNow}
-      onSecondary={onContinue}
+      primaryLabel={
+        granted
+          ? strings.onboarding.continue
+          : denied
+            ? strings.permissions.openSettings
+            : allowLabel
+      }
+      onPrimary={primary}
+      secondaryLabel={granted || denied ? undefined : strings.permissions.notNow}
+      onSecondary={granted || denied ? undefined : onContinue}
       skipTo="/onboarding/ready"
     />
   );

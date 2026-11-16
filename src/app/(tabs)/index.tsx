@@ -1,7 +1,7 @@
 import { useNetInfo } from '@react-native-community/netinfo';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, View } from 'react-native';
 
 import { JourneyStatusCard } from '@/components/home/journey-status-card';
 import { NextStopCard } from '@/components/home/next-stop-card';
@@ -123,7 +123,7 @@ export default function HomeScreen() {
     };
   }, [loadSide, journey?.id, journey?.status]);
 
-  const refreshSide = () => {
+  const refreshSide = useCallback(() => {
     void loadSide()
       .then((side) => {
         setIssues(side.issues);
@@ -131,7 +131,22 @@ export default function HomeScreen() {
         setInterrupted(side.interrupted);
       })
       .catch(() => undefined);
-  };
+  }, [loadSide]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshSide();
+    }, [refreshSide]),
+  );
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        refreshSide();
+      }
+    });
+    return () => sub.remove();
+  }, [refreshSide]);
 
   const distanceM = tracking.lastKnownDistanceM ?? journey?.lastKnownDistanceM ?? null;
   const offline = net.isConnected === false;
@@ -338,7 +353,9 @@ export default function HomeScreen() {
               body: strings.journey.endConfirmBody,
               confirmLabel: strings.home.end,
               destructive: true,
-              onConfirm: () => void run(() => endJourneySession(journey.id, 'completed')),
+              // Ending by hand stops the trip short; only the alarm completing
+              // counts as having arrived.
+              onConfirm: () => void run(() => endJourneySession(journey.id, 'cancelled')),
             })
           }
           onOpen={() => router.push({ pathname: '/journey/[id]', params: { id: journey.id } })}
@@ -363,7 +380,7 @@ export default function HomeScreen() {
             <AppButton
               label={strings.home.end}
               variant="ghost"
-              onPress={() => run(() => endJourneySession(interrupted.id, 'completed'))}
+              onPress={() => run(() => endJourneySession(interrupted.id, 'cancelled'))}
               disabled={busy}
               style={styles.action}
             />

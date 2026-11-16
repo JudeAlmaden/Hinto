@@ -7,6 +7,7 @@
  */
 
 import * as Battery from 'expo-battery';
+import * as Device from 'expo-device';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
@@ -174,32 +175,53 @@ export async function openLocationSettings(): Promise<void> {
   }
 }
 
-export async function openBatterySettings(): Promise<void> {
+/** Where a Settings button landed, so the caller can confirm what it opened. */
+export type SettingsDestination = 'oem' | 'dialog' | 'appInfo';
+
+export async function openBatterySettings(): Promise<SettingsDestination> {
   if (Platform.OS !== 'android') {
     await openAppSettings();
-    return;
+    return 'appInfo';
   }
+
+  const brand = (Device.manufacturer ?? '').toLowerCase();
+  const isAggressiveOEM =
+    brand.includes('oppo') ||
+    brand.includes('realme') ||
+    brand.includes('oneplus') ||
+    brand.includes('xiaomi') ||
+    brand.includes('redmi') ||
+    brand.includes('poco') ||
+    brand.includes('vivo') ||
+    brand.includes('huawei');
+
+  // Aggressive OEM skins (ColorOS, MIUI, EMUI, Funtouch) suppress the standard
+  // system dialog, so opening Hinto's App Info page directly gives the user the
+  // real "Battery usage" / "Background launch" toggles.
+  if (isAggressiveOEM) {
+    try {
+      await openAppSettingsPage();
+      return 'appInfo';
+    } catch {
+      await openAppSettings();
+      return 'appInfo';
+    }
+  }
+
   try {
     // Direct system dialog: "Allow Hinto to always run in background? [Allow] [Deny]"
     await IntentLauncher.startActivityAsync(
       IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-      { data: 'package:com.hinto.app' },
+      { data: `package:${APP_PACKAGE}` },
     );
+    return 'dialog';
   } catch {
     try {
-      // Direct App Info page for Hinto where Battery settings are immediately visible
-      await IntentLauncher.startActivityAsync(
-        IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
-        { data: 'package:com.hinto.app' },
-      );
+      await openAppSettingsPage();
+      return 'appInfo';
     } catch {
-      try {
-        await IntentLauncher.startActivityAsync(
-          IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS,
-        );
-      } catch {
-        await openAppSettings();
-      }
+      await openAppSettings();
+      return 'appInfo';
     }
   }
 }
@@ -212,82 +234,131 @@ export async function isBatteryOptimisationOn(): Promise<boolean> {
   }
 }
 
+const APP_PACKAGE = 'com.hinto.app';
+
+interface AutoStartTarget {
+  packageName: string;
+  className: string;
+}
+
 /**
- * Opens the OEM-specific "Auto-Start" / "Startup Manager" settings page so the
- * user can allow Hinto to run after the screen locks.  Different manufacturers
- * use completely different activity names; we try them in order and fall back to
- * the app's own detail page so the user can at least navigate from there.
- *
- * Tested component names (non-exhaustive):
- *  - OPPO / OnePlus ColorOS: com.coloros.safecenter / .permission.startupapp.StartupAppListActivity
- *  - Xiaomi MIUI: com.miui.securitycenter / .AppCenterActivity
- *  - Samsung One UI: com.samsung.android.lool / .HibernationActivity
- *  - Huawei EMUI: com.huawei.systemmanager / .startupmgr.ui.StartupNormalAppListActivity
- *  - Vivo: com.iqoo.secure / .ui.phoneoptimize.AddWhiteListActivity
+ * Each Android skin puts "Auto-start" somewhere else, so the activity is
+ * selected by manufacturer instead of blindly probing every OEM package.
+ * A wrong entry is harmless (the component is missing and we try the next one),
+ * but probing all of them made the button feel broken on non-Oppo phones.
  */
-export async function openAutoStartSettings(): Promise<void> {
-  if (Platform.OS !== 'android') return;
+const AUTO_START_BRANDS: { brands: string[]; targets: AutoStartTarget[] }[] = [
+  {
+    // ColorOS / OxygenOS / realme UI all descend from the same settings app.
+    brands: ['oppo', 'realme', 'oneplus'],
+    targets: [
+      {
+        packageName: 'com.oplus.safecenter',
+        className: 'com.oplus.safecenter.permission.startup.StartupAppListActivity',
+      },
+      {
+        packageName: 'com.coloros.safecenter',
+        className: 'com.coloros.safecenter.permission.startup.StartupAppListActivity',
+      },
+      {
+        packageName: 'com.coloros.safecenter',
+        className: 'com.coloros.safecenter.startupapp.StartupAppListActivity',
+      },
+      {
+        packageName: 'com.oneplus.security',
+        className: 'com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity',
+      },
+    ],
+  },
+  {
+    brands: ['xiaomi', 'redmi', 'poco'],
+    targets: [
+      {
+        packageName: 'com.miui.securitycenter',
+        className: 'com.miui.permcenter.autostart.AutoStartManagementActivity',
+      },
+    ],
+  },
+  {
+    brands: ['samsung'],
+    targets: [
+      {
+        packageName: 'com.samsung.android.lool',
+        className: 'com.samsung.android.sm.ui.battery.BatteryActivity',
+      },
+    ],
+  },
+  {
+    brands: ['huawei', 'honor'],
+    targets: [
+      {
+        packageName: 'com.huawei.systemmanager',
+        className: 'com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity',
+      },
+    ],
+  },
+  {
+    brands: ['vivo', 'iqoo'],
+    targets: [
+      {
+        packageName: 'com.vivo.permissionmanager',
+        className: 'com.vivo.permissionmanager.activity.BgStartUpManagerActivity',
+      },
+      {
+        packageName: 'com.iqoo.secure',
+        className: 'com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity',
+      },
+    ],
+  },
+  {
+    brands: ['asus'],
+    targets: [
+      {
+        packageName: 'com.asus.mobilemanager',
+        className: 'com.asus.mobilemanager.autostart.AutoStartActivity',
+      },
+    ],
+  },
+];
 
-  const oemActivities = [
-    // OPPO / ColorOS (most common for user's device)
-    {
-      packageName: 'com.coloros.safecenter',
-      className: 'com.coloros.safecenter.permission.startupapp.StartupAppListActivity',
-    },
-    {
-      packageName: 'com.coloros.safecenter',
-      className: 'com.coloros.safecenter.startupapp.StartupAppListActivity',
-    },
-    // OnePlus (older OxygenOS)
-    {
-      packageName: 'com.oneplus.security',
-      className: 'com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity',
-    },
-    // Xiaomi / MIUI
-    {
-      packageName: 'com.miui.securitycenter',
-      className: 'com.miui.permcenter.autostart.AutoStartManagementActivity',
-    },
-    // Samsung One UI
-    {
-      packageName: 'com.samsung.android.lool',
-      className: 'com.samsung.android.sm.battery.ui.BatteryActivity',
-    },
-    // Huawei / EMUI
-    {
-      packageName: 'com.huawei.systemmanager',
-      className: 'com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity',
-    },
-    // Vivo
-    {
-      packageName: 'com.iqoo.secure',
-      className: 'com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity',
-    },
-    // Realme / Narzo (ColorOS variant)
-    {
-      packageName: 'com.coloros.oppoguardelf',
-      className: 'com.coloros.powermanager.fuelgaue.PowerConsumptionActivity',
-    },
-  ];
+function autoStartTargets(manufacturer: string | null): AutoStartTarget[] {
+  const brand = (manufacturer ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!brand) return [];
+  return AUTO_START_BRANDS.find((entry) => entry.brands.includes(brand))?.targets ?? [];
+}
 
-  for (const { packageName, className } of oemActivities) {
-    try {
-      await IntentLauncher.startActivityAsync(className, {
-        packageName,
-      });
-      return; // success — stop trying
-    } catch {
-      // try next
-    }
+/** True when this phone's skin has a page Hinto can open directly. */
+export function hasAutoStartShortcut(): boolean {
+  return autoStartTargets(Device.manufacturer).length > 0;
+}
+
+async function openAppSettingsPage(): Promise<void> {
+  await IntentLauncher.startActivityAsync(
+    IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
+    { data: `package:${APP_PACKAGE}` },
+  );
+}
+
+/**
+ * Opens the OEM "Auto-Start" / "Startup Manager" page so Hinto survives the
+ * screen locking. Note that `className` belongs in the params: passing it as the
+ * intent action (the previous behaviour) never matched an activity, which is why
+ * the button only ever fell through to the app page.
+ *
+ * Resolves after the user comes back, with where they were sent.
+ */
+export async function openAutoStartSettings(): Promise<SettingsDestination> {
+  if (Platform.OS !== 'android') {
+    await openAppSettings();
+    return 'appInfo';
   }
 
-  // Generic fallback: open Hinto's App Details so user can tap Battery / Autostart
+  // Opens Hinto's App Info page, which provides direct access to Battery Usage,
+  // Background Activity, and Auto-Launch toggles across all OEM skins.
   try {
-    await IntentLauncher.startActivityAsync(
-      IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
-      { data: 'package:com.hinto.app' },
-    );
+    await openAppSettingsPage();
   } catch {
     await openAppSettings();
   }
+  return 'appInfo';
 }

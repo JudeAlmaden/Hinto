@@ -4,8 +4,10 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * Android-only MVP (plan D16). iOS values are kept so the config stays valid
  * but are unvalidated — no iOS build or device test is in scope.
  *
- * Local config plugin `boot-recovery` (plan D2) is added in Phase 5 together
- * with the native module, so it is intentionally absent here.
+ * No boot receiver is installed: a reboot ends tracking, and the next launch
+ * records that journey as `interrupted` (D2) instead of promising an alarm that
+ * cannot ring. `RECEIVE_BOOT_COMPLETED` is still declared because
+ * expo-notifications uses it to restore scheduled snooze notifications.
  */
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -31,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'android.permission.RECEIVE_BOOT_COMPLETED',
       'android.permission.FOREGROUND_SERVICE_LOCATION',
       'android.permission.POST_NOTIFICATIONS',
+      'android.permission.VIBRATE',
       'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
     ],
     adaptiveIcon: {

@@ -132,6 +132,12 @@ export default function SettingsScreen() {
           onValueChange={(value) => void update({ vibration_enabled: value })}
         />
         <ToggleRow
+          label={strings.settings.vibrationRepeat}
+          description={strings.settings.vibrationRepeatNote}
+          value={settings.vibration_repeat}
+          onValueChange={(value) => void update({ vibration_repeat: value })}
+        />
+        <ToggleRow
           label={strings.settings.repeatUntilDismissed}
           value={settings.repeat_until_dismissed}
           onValueChange={(value) => void update({ repeat_until_dismissed: value })}
