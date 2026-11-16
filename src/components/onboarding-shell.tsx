@@ -12,7 +12,7 @@ import { strings } from '@/constants/strings';
 import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export const ONBOARDING_STEPS = 8;
+export const ONBOARDING_STEPS = 9;
 
 export function OnboardingShell({
   step,

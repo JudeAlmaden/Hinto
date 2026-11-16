@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { MoreMenu } from '@/components/ui/more-menu';
 import { AppButton, Card } from '@/components/ui/controls';
+import { Icon } from '@/components/ui/icon';
 import { Row, Stack } from '@/components/ui/layout';
 import { Mascot } from '@/components/ui/mascot';
 import { confirmAction } from '@/components/ui/confirm';
@@ -15,6 +16,7 @@ import { formatCopy, strings } from '@/constants/strings';
 import { Radii, Spacing } from '@/constants/theme';
 import { getDatabase } from '@/db/client';
 import { useAsyncData } from '@/hooks/use-async';
+import { useTheme } from '@/hooks/use-theme';
 import { useTracking } from '@/hooks/use-tracking';
 import type { Journey, JourneyAlert } from '@/modules/journeys';
 import { getJourney, listJourneyAlerts } from '@/modules/journeys/repository';
@@ -32,6 +34,7 @@ interface Detail {
 
 export default function ActiveJourneyScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const net = useNetInfo();
   const params = useLocalSearchParams<{ id: string }>();
   const id = typeof params.id === 'string' ? params.id : '';
@@ -66,6 +69,14 @@ export default function ActiveJourneyScreen() {
 
   const distanceM = tracking.lastKnownDistanceM ?? journey.lastKnownDistanceM;
   const progress = progressToRadius(distanceM, journey.radiusM);
+  const isTriggered = journey.status === 'triggered';
+  const isPaused = journey.status === 'paused';
+
+  const stopAlarmAndEnd = () =>
+    void run(async () => {
+      await endJourneySession(journey.id, 'completed');
+      router.replace({ pathname: '/history/[id]', params: { id: journey.id } });
+    });
 
   const endJourney = () =>
     confirmAction({
@@ -126,28 +137,41 @@ export default function ActiveJourneyScreen() {
         />
       }
       footer={
-        <Row gap="two">
+        isTriggered ? (
           <AppButton
-            label={journey.status === 'paused' ? strings.home.resume : strings.home.pause}
-            variant="secondary"
+            label={strings.alarm.imAwake}
+            variant="danger"
             disabled={busy}
-            onPress={() =>
-              run(() =>
-                journey.status === 'paused'
-                  ? resumeJourneySession(journey.id)
-                  : pauseJourneySession(journey.id),
-              )
-            }
-            style={styles.action}
+            onPress={stopAlarmAndEnd}
           />
-          <AppButton
-            label={strings.home.end}
-            variant="ghost"
-            disabled={busy}
-            onPress={endJourney}
-            style={styles.action}
-          />
-        </Row>
+        ) : (
+          <Row gap="two">
+            {isPaused ? (
+              <AppButton
+                label={strings.home.resume}
+                variant="primary"
+                disabled={busy}
+                onPress={() => run(() => resumeJourneySession(journey.id))}
+                style={styles.action}
+              />
+            ) : (
+              <AppButton
+                label={strings.home.end}
+                variant="primary"
+                disabled={busy}
+                onPress={endJourney}
+                style={styles.action}
+              />
+            )}
+            <AppButton
+              label={isPaused ? strings.home.end : strings.home.pause}
+              variant="secondary"
+              disabled={busy}
+              onPress={isPaused ? endJourney : () => run(() => pauseJourneySession(journey.id))}
+              style={styles.action}
+            />
+          </Row>
+        )
       }>
       <Stack gap="one" align="center" pt="three">
         <ThemedText style={styles.destination} numberOfLines={2}>
@@ -164,6 +188,22 @@ export default function ActiveJourneyScreen() {
           </ThemedText>
         </Stack>
       </Stack>
+
+      {isTriggered ? (
+        <Card style={[styles.triggeredCard, { borderColor: theme.danger }]}>
+          <Row gap="two" align="center">
+            <Icon name="alarm" size={26} color={theme.danger} />
+            <Stack gap={0} style={styles.flexOne}>
+              <ThemedText style={[styles.triggeredTitle, { color: theme.danger }]}>
+                {strings.alarm.headline}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {strings.alarm.limitation}
+              </ThemedText>
+            </Stack>
+          </Row>
+        </Card>
+      ) : null}
 
       <Card style={styles.statusCard}>
         <Row between gap="two">
@@ -236,6 +276,17 @@ const styles = StyleSheet.create({
   statusCard: {
     paddingVertical: Spacing.three,
     gap: Spacing.two,
+  },
+  triggeredCard: {
+    paddingVertical: Spacing.three,
+    borderWidth: 2,
+  },
+  triggeredTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  flexOne: {
+    flex: 1,
   },
   progressTrack: {
     height: 8,

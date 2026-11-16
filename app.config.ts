@@ -11,7 +11,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.6.1',
+  version: '0.6.2',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',
@@ -21,11 +21,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.hinto.app',
+    permissions: [
+      'android.permission.MODIFY_AUDIO_SETTINGS',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.RECEIVE_BOOT_COMPLETED',
+      'android.permission.FOREGROUND_SERVICE_LOCATION',
+      'android.permission.POST_NOTIFICATIONS',
+      'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+    ],
     adaptiveIcon: {
       backgroundColor: '#D99A43',
       foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
-      monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
   },
@@ -41,9 +51,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#208AEF',
-        image: './assets/images/splash-icon.png',
-        imageWidth: 76,
+        backgroundColor: '#FAF7F0',
+        image: './assets/images/icon.png',
+        imageWidth: 96,
       },
     ],
     'expo-sqlite',
@@ -73,7 +83,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-notifications',
       {
         icon: './assets/notifications/notification-icon.png',
-        color: '#208AEF',
+        color: '#D99A43',
         defaultChannel: 'journey-v1',
         sounds: [
           // Android resource names allow only lowercase letters, digits and

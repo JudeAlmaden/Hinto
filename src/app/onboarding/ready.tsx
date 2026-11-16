@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -73,6 +73,12 @@ export default function ReadyOnboardingScreen() {
       state: 'warning',
       onPress: () => router.push('/onboarding/battery'),
     },
+    {
+      key: 'autostart',
+      label: `${strings.permissions.autoStart} — ${strings.onboarding.notReviewed}`,
+      state: 'warning',
+      onPress: () => router.push('/onboarding/auto-start' as Href),
+    },
   ];
 
   const finish = async () => {
@@ -82,7 +88,7 @@ export default function ReadyOnboardingScreen() {
 
   return (
     <OnboardingShell
-      step={8}
+      step={9}
       hero={<Mascot pose="ready" height={130} />}
       title={strings.onboarding.ready}
       body={strings.onboarding.readyBody}

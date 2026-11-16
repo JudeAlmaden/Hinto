@@ -5,6 +5,23 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-16
+
+### Fixed
+- Auto-start / OEM background permissions: added OEM-specific intent dispatch (`openAutoStartSettings`) targeting OPPO/ColorOS, Xiaomi/MIUI, Samsung/OneUI, Huawei, and Vivo autostart managers to prevent background location termination while the phone is locked or asleep.
+- Onboarding auto-start step: added dedicated step 7 in onboarding with OEM-aware guidance and direct launch buttons, linking to ColorOS Startup Manager / App Quick Freeze settings.
+- Adaptive icon: removed template Expo background and monochrome images from adaptive icon config that caused modern/themed Android launchers to display the Expo logo.
+- Battery optimization: added direct OS confirmation prompt (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) and App Info fallback with guidance text so users aren't lost in the "Not optimized" filter list.
+- Alarm trigger handling: auto-route to full-screen `/alarm` screen upon distance trigger while app is in foreground.
+- Journey screen controls: replaced confusing pause button with a single, instant-dismiss "I'm awake / Stop alarm" button during active alarms (no confirmation dialog); reorganized normal controls so "End journey" is primary and "Pause" is secondary.
+- Pin picker radius selection: added distance selector chips directly into the pin screen bottom sheet with live geofence circle overlay rendered on the map.
+- Virtual keyboard overlap: wrapped pin destination bottom sheet in `KeyboardAvoidingView` and `ScrollView` so the place name field and action buttons are never obscured by the virtual keyboard.
+- Splash & notification branding: replaced lingering template Expo blue (`#208AEF`) with Hinto amber and warm daylight tokens.
+
+### Technical
+- Modified: `app.config.ts`, `src/app/_layout.tsx`, `src/app/destination/pin.tsx`, `src/app/journey/[id].tsx`, `src/app/onboarding/auto-start.tsx`, `src/app/onboarding/battery.tsx`, `src/app/onboarding/alarm-test.tsx`, `src/app/onboarding/ready.tsx`, `src/components/onboarding-shell.tsx`, `src/components/pin-map.tsx`, `src/constants/strings.ts`, `src/modules/permissions/service.ts`, `package.json`, `CHANGELOG.md`
+- Tests: 143 passing — lint/typecheck clean
+
 ## [0.6.1] - 2026-11-16
 
 ### Changed

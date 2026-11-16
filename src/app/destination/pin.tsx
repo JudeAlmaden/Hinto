@@ -1,7 +1,7 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PinMap } from '@/components/pin-map';
@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Row, Stack } from '@/components/ui/layout';
 import { AppButton, TextField } from '@/components/ui/controls';
+import { RadiusPicker } from '@/components/ui/radius-picker';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Icon } from '@/components/ui/icon';
 import { DEFAULT_RADIUS_M } from '@/constants/alarms';
@@ -21,7 +22,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { currentLocation } from '@/modules/location/service';
 import { offlinePinLabel, type PinPoint } from '@/modules/maps';
 import { suggestPlaceName } from '@/modules/maps/label';
-import { formatCoordinates } from '@/utils/format';
+import { formatCoordinates, formatRadius } from '@/utils/format';
 import { journeySetupParams } from '@/utils/navigation';
 
 const FALLBACK: PinPoint = { latitude: 14.5995, longitude: 120.9842 };
@@ -40,6 +41,7 @@ export default function PinDestinationScreen() {
   const [intent, setIntent] = useState<'save' | 'journey' | null>(paramIntent);
   const effectiveIntent = intent ?? 'journey';
 
+  const [radius, setRadius] = useState<number>(settings.default_radius_m || DEFAULT_RADIUS_M);
   const [mode, setMode] = useState<'map' | 'coordinates'>('map');
   const [center, setCenter] = useState<PinPoint>(FALLBACK);
   const [point, setPoint] = useState<PinPoint | null>(null);
@@ -164,7 +166,7 @@ export default function PinDestinationScreen() {
       pathname: '/journey/new',
       params: journeySetupParams(
         { name: resolvedName(), latitude, longitude, placeId: null },
-        settings.default_radius_m || DEFAULT_RADIUS_M,
+        radius,
       ),
     });
   };
@@ -194,6 +196,7 @@ export default function PinDestinationScreen() {
             key={mapKey}
             center={center}
             centerPin
+            radiusM={effectiveIntent === 'journey' ? radius : undefined}
             onCenterChange={(next) => {
               applyPoint(next);
               setError(null);
@@ -235,110 +238,136 @@ export default function PinDestinationScreen() {
         ) : null}
       </View>
 
-      <BottomSheet>
-        {paramIntent === null ? (
-          <SegmentedControl
-            options={[
-              { value: 'journey', label: strings.destination.intentJourney },
-              { value: 'save', label: strings.destination.intentPlace },
-            ]}
-            value={effectiveIntent}
-            onChange={setIntent}
-          />
-        ) : null}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.keyboardWrap}>
+        <BottomSheet style={styles.sheetContainer}>
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled">
+            {paramIntent === null ? (
+              <SegmentedControl
+                options={[
+                  { value: 'journey', label: strings.destination.intentJourney },
+                  { value: 'save', label: strings.destination.intentPlace },
+                ]}
+                value={effectiveIntent}
+                onChange={setIntent}
+              />
+            ) : null}
 
-        {offline ? (
-          <ThemedText type="small" style={{ color: theme.warning }}>
-            {strings.destination.offlineMap}
-          </ThemedText>
-        ) : null}
+            {offline ? (
+              <ThemedText type="small" style={{ color: theme.warning }}>
+                {strings.destination.offlineMap}
+              </ThemedText>
+            ) : null}
 
-        {mode === 'map' ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {strings.destination.pinHint}
-          </ThemedText>
-        ) : (
-          <Stack gap="two">
-            <ThemedText type="small" themeColor="textSecondary">
-              {mapFailed ? strings.destination.mapFailed : strings.destination.coordinateHint}
-            </ThemedText>
+            {mode === 'map' ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                {strings.destination.pinHint}
+              </ThemedText>
+            ) : (
+              <Stack gap="two">
+                <ThemedText type="small" themeColor="textSecondary">
+                  {mapFailed ? strings.destination.mapFailed : strings.destination.coordinateHint}
+                </ThemedText>
+                <TextField
+                  label={strings.destination.latitude}
+                  value={latitudeText}
+                  onChangeText={setLatitudeText}
+                  keyboardType="numbers-and-punctuation"
+                  autoCorrect={false}
+                />
+                <TextField
+                  label={strings.destination.longitude}
+                  value={longitudeText}
+                  onChangeText={setLongitudeText}
+                  keyboardType="numbers-and-punctuation"
+                  autoCorrect={false}
+                />
+                <AppButton
+                  label={strings.destination.applyCoordinates}
+                  variant="secondary"
+                  onPress={applyCoordinates}
+                />
+              </Stack>
+            )}
+
             <TextField
-              label={strings.destination.latitude}
-              value={latitudeText}
-              onChangeText={setLatitudeText}
-              keyboardType="numbers-and-punctuation"
+              label={strings.place.name}
+              value={name}
+              onChangeText={(next) => {
+                setName(next);
+                setNameEdited(true);
+              }}
+              placeholder={suggesting ? strings.common.loading : strings.place.namePlaceholder}
+              hint={point ? formatCoordinates(point.latitude, point.longitude) : undefined}
               autoCorrect={false}
             />
-            <TextField
-              label={strings.destination.longitude}
-              value={longitudeText}
-              onChangeText={setLongitudeText}
-              keyboardType="numbers-and-punctuation"
-              autoCorrect={false}
-            />
+
+            {effectiveIntent === 'journey' ? (
+              <Stack gap="one">
+                <Row between align="center">
+                  <ThemedText type="smallBold">
+                    {strings.journeySetup.alertDistance}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {formatRadius(radius, settings.distance_unit)}
+                  </ThemedText>
+                </Row>
+                <RadiusPicker value={radius} onChange={setRadius} unit={settings.distance_unit} />
+              </Stack>
+            ) : null}
+
+            {error ? (
+              <ThemedText type="small" style={{ color: theme.danger }}>
+                {error}
+              </ThemedText>
+            ) : null}
+
             <AppButton
-              label={strings.destination.applyCoordinates}
-              variant="secondary"
-              onPress={applyCoordinates}
+              label={
+                effectiveIntent === 'save'
+                  ? strings.destination.savePlace
+                  : `${strings.destination.usePoint} (${formatRadius(radius, settings.distance_unit)})`
+              }
+              onPress={() => (effectiveIntent === 'save' ? void savePlace() : choose())}
+              disabled={!point}
+              loading={savingPlace}
             />
-          </Stack>
-        )}
 
-        <TextField
-          label={strings.place.name}
-          value={name}
-          onChangeText={(next) => {
-            setName(next);
-            setNameEdited(true);
-          }}
-          placeholder={suggesting ? strings.common.loading : strings.place.namePlaceholder}
-          hint={point ? formatCoordinates(point.latitude, point.longitude) : undefined}
-          autoCorrect={false}
-        />
+            <Row between pt="one">
+              <Pressable
+                onPress={() =>
+                  effectiveIntent === 'save'
+                    ? router.push({
+                        pathname: '/journey/new',
+                        params: journeySetupParams(
+                          { name: resolvedName(), ...(point ?? FALLBACK), placeId: null },
+                          radius,
+                        ),
+                      })
+                    : void savePlace()
+                }
+                disabled={!point}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {effectiveIntent === 'save'
+                    ? strings.destination.usePoint
+                    : strings.destination.savePlace}
+                </ThemedText>
+              </Pressable>
 
-        {error ? (
-          <ThemedText type="small" style={{ color: theme.danger }}>
-            {error}
-          </ThemedText>
-        ) : null}
-
-        <AppButton
-          label={
-            effectiveIntent === 'save' ? strings.destination.savePlace : strings.destination.usePoint
-          }
-          onPress={() => (effectiveIntent === 'save' ? void savePlace() : choose())}
-          disabled={!point}
-          loading={savingPlace}
-        />
-
-        <Row between pt="one">
-          <Pressable
-            onPress={() =>
-              effectiveIntent === 'save'
-                ? router.push({
-                    pathname: '/journey/new',
-                    params: journeySetupParams(
-                      { name: resolvedName(), ...(point ?? FALLBACK), placeId: null },
-                      settings.default_radius_m || DEFAULT_RADIUS_M,
-                    ),
-                  })
-                : void savePlace()
-            }
-            disabled={!point}>
-            <ThemedText type="small" themeColor="textSecondary">
-              {effectiveIntent === 'save'
-                ? strings.destination.usePoint
-                : strings.destination.savePlace}
-            </ThemedText>
-          </Pressable>
-
-          <Pressable onPress={mode === 'map' ? () => setMode('coordinates') : showMap}>
-            <ThemedText type="small" themeColor="textSecondary">
-              {mode === 'map' ? strings.destination.coordinateEntry : strings.destination.showMap}
-            </ThemedText>
-          </Pressable>
-        </Row>
-      </BottomSheet>
+              <Pressable onPress={mode === 'map' ? () => setMode('coordinates') : showMap}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {mode === 'map' ? strings.destination.coordinateEntry : strings.destination.showMap}
+                </ThemedText>
+              </Pressable>
+            </Row>
+          </ScrollView>
+        </BottomSheet>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
@@ -385,5 +414,20 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  keyboardWrap: {
+    width: '100%',
+  },
+  sheetContainer: {
+    maxHeight: 460,
+    paddingHorizontal: 0,
+  },
+  sheetScroll: {
+    maxHeight: 420,
+  },
+  sheetContent: {
+    paddingHorizontal: Spacing.three,
+    gap: Spacing.two,
+    paddingBottom: Spacing.two,
   },
 });

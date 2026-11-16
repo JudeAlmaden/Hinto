@@ -1,5 +1,5 @@
 import * as Device from 'expo-device';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -35,6 +35,9 @@ export default function BatteryOnboardingScreen() {
               Settings › Apps › Hinto › Battery
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
+              {'If an app list appears, change filter from "Not optimized" to "All apps" to find Hinto.'}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
               {strings.onboarding.batteryTradeoff}
             </ThemedText>
           </Stack>
@@ -45,7 +48,7 @@ export default function BatteryOnboardingScreen() {
       primaryLabel={strings.onboarding.openBatterySettings}
       onPrimary={() => void openBatterySettings()}
       secondaryLabel={strings.onboarding.batteryLater}
-      onSecondary={() => router.push('/onboarding/alarm-test')}
+      onSecondary={() => router.push('/onboarding/auto-start' as Href)}
       skipTo="/onboarding/ready"
     />
   );

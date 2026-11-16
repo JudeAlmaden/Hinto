@@ -180,11 +180,27 @@ export async function openBatterySettings(): Promise<void> {
     return;
   }
   try {
+    // Direct system dialog: "Allow Hinto to always run in background? [Allow] [Deny]"
     await IntentLauncher.startActivityAsync(
-      IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS,
+      IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+      { data: 'package:com.hinto.app' },
     );
   } catch {
-    await openAppSettings();
+    try {
+      // Direct App Info page for Hinto where Battery settings are immediately visible
+      await IntentLauncher.startActivityAsync(
+        IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
+        { data: 'package:com.hinto.app' },
+      );
+    } catch {
+      try {
+        await IntentLauncher.startActivityAsync(
+          IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS,
+        );
+      } catch {
+        await openAppSettings();
+      }
+    }
   }
 }
 
@@ -193,5 +209,85 @@ export async function isBatteryOptimisationOn(): Promise<boolean> {
     return await Battery.isBatteryOptimizationEnabledAsync();
   } catch {
     return false;
+  }
+}
+
+/**
+ * Opens the OEM-specific "Auto-Start" / "Startup Manager" settings page so the
+ * user can allow Hinto to run after the screen locks.  Different manufacturers
+ * use completely different activity names; we try them in order and fall back to
+ * the app's own detail page so the user can at least navigate from there.
+ *
+ * Tested component names (non-exhaustive):
+ *  - OPPO / OnePlus ColorOS: com.coloros.safecenter / .permission.startupapp.StartupAppListActivity
+ *  - Xiaomi MIUI: com.miui.securitycenter / .AppCenterActivity
+ *  - Samsung One UI: com.samsung.android.lool / .HibernationActivity
+ *  - Huawei EMUI: com.huawei.systemmanager / .startupmgr.ui.StartupNormalAppListActivity
+ *  - Vivo: com.iqoo.secure / .ui.phoneoptimize.AddWhiteListActivity
+ */
+export async function openAutoStartSettings(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  const oemActivities = [
+    // OPPO / ColorOS (most common for user's device)
+    {
+      packageName: 'com.coloros.safecenter',
+      className: 'com.coloros.safecenter.permission.startupapp.StartupAppListActivity',
+    },
+    {
+      packageName: 'com.coloros.safecenter',
+      className: 'com.coloros.safecenter.startupapp.StartupAppListActivity',
+    },
+    // OnePlus (older OxygenOS)
+    {
+      packageName: 'com.oneplus.security',
+      className: 'com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity',
+    },
+    // Xiaomi / MIUI
+    {
+      packageName: 'com.miui.securitycenter',
+      className: 'com.miui.permcenter.autostart.AutoStartManagementActivity',
+    },
+    // Samsung One UI
+    {
+      packageName: 'com.samsung.android.lool',
+      className: 'com.samsung.android.sm.battery.ui.BatteryActivity',
+    },
+    // Huawei / EMUI
+    {
+      packageName: 'com.huawei.systemmanager',
+      className: 'com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity',
+    },
+    // Vivo
+    {
+      packageName: 'com.iqoo.secure',
+      className: 'com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity',
+    },
+    // Realme / Narzo (ColorOS variant)
+    {
+      packageName: 'com.coloros.oppoguardelf',
+      className: 'com.coloros.powermanager.fuelgaue.PowerConsumptionActivity',
+    },
+  ];
+
+  for (const { packageName, className } of oemActivities) {
+    try {
+      await IntentLauncher.startActivityAsync(className, {
+        packageName,
+      });
+      return; // success — stop trying
+    } catch {
+      // try next
+    }
+  }
+
+  // Generic fallback: open Hinto's App Details so user can tap Battery / Autostart
+  try {
+    await IntentLauncher.startActivityAsync(
+      IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
+      { data: 'package:com.hinto.app' },
+    );
+  } catch {
+    await openAppSettings();
   }
 }

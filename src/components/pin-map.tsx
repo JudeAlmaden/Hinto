@@ -1,20 +1,54 @@
 import {
   Camera,
+  GeoJSONSource,
   Layer,
   Map,
   RasterSource,
   ViewAnnotation,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native';
+import { useMemo } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radii } from '@/constants/theme';
 import { PIN_MAP_ATTRIBUTION, PIN_MAP_TILE_URL, type PinPoint } from '@/modules/maps';
 
+function makeCirclePolygon(lng: number, lat: number, radiusM: number): GeoJSON.Feature<GeoJSON.Polygon> {
+  const points = 64;
+  const coords: [number, number][] = [];
+  const earthRadius = 6378137;
+  const d = radiusM / earthRadius;
+  const latRad = (lat * Math.PI) / 180;
+  const lngRad = (lng * Math.PI) / 180;
+
+  for (let i = 0; i <= points; i++) {
+    const bearing = (i * 2 * Math.PI) / points;
+    const pLat = Math.asin(
+      Math.sin(latRad) * Math.cos(d) + Math.cos(latRad) * Math.sin(d) * Math.cos(bearing),
+    );
+    const pLng =
+      lngRad +
+      Math.atan2(
+        Math.sin(bearing) * Math.sin(d) * Math.cos(latRad),
+        Math.cos(d) - Math.sin(latRad) * Math.sin(pLat),
+      );
+    coords.push([(pLng * 180) / Math.PI, (pLat * 180) / Math.PI]);
+  }
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coords],
+    },
+    properties: {},
+  };
+}
+
 interface Props {
   center: PinPoint;
   pin?: PinPoint | null;
+  radiusM?: number;
   /** Tap-to-place mode (journey pin picker). */
   onPick?: (point: PinPoint) => void;
   /** Fixed-centre mode: reports the map centre after every gesture. */
@@ -38,12 +72,20 @@ const EMPTY_STYLE: StyleSpecification = { version: 8, sources: {}, layers: [] };
 export function PinMap({
   center,
   pin,
+  radiusM,
   onPick,
   onCenterChange,
   centerPin = false,
   onFailure,
   style,
 }: Props) {
+  const circleData = useMemo(() => {
+    if (!radiusM) return null;
+    const target = centerPin ? center : pin;
+    if (!target) return null;
+    return makeCirclePolygon(target.longitude, target.latitude, radiusM);
+  }, [radiusM, centerPin, center, pin]);
+
   return (
     <View style={[styles.wrap, style]}>
       <Map
@@ -73,7 +115,7 @@ export function PinMap({
         <Camera
           initialViewState={{
             center: [center.longitude, center.latitude],
-            zoom: centerPin ? 16 : 15,
+            zoom: centerPin ? 15 : 15,
           }}
         />
         <RasterSource
@@ -84,6 +126,27 @@ export function PinMap({
           attribution={PIN_MAP_ATTRIBUTION}>
           <Layer id="osm-raster" type="raster" source="osm" />
         </RasterSource>
+        {circleData ? (
+          <GeoJSONSource id="radius-source" data={circleData}>
+            <Layer
+              id="radius-fill"
+              type="fill"
+              style={{
+                fillColor: '#D99A43',
+                fillOpacity: 0.18,
+              }}
+            />
+            <Layer
+              id="radius-line"
+              type="line"
+              style={{
+                lineColor: '#D99A43',
+                lineWidth: 2,
+                lineDasharray: [2, 2],
+              }}
+            />
+          </GeoJSONSource>
+        ) : null}
         {!centerPin && pin ? (
           <ViewAnnotation lngLat={[pin.longitude, pin.latitude]} anchor="center">
             <View style={styles.pin}>

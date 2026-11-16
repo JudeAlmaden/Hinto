@@ -41,7 +41,7 @@ export default function AlarmTestOnboardingScreen() {
 
   return (
     <OnboardingShell
-      step={7}
+      step={8}
       hero={<Mascot pose="alert" height={130} />}
       title={strings.onboarding.alarmTitle}
       body={strings.onboarding.alarmBody}

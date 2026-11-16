@@ -22,6 +22,7 @@ import { strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import { getDatabase, openDatabase } from '@/db/client';
 import { ensureNotificationChannels } from '@/modules/alarm/channels';
+import { subscribeToAlarm } from '@/modules/alarm/delivery';
 import {
   configureNotificationHandler,
   extractAlarmJourneyId,
@@ -88,7 +89,17 @@ export default function RootLayout() {
       })
       .catch(() => undefined);
 
-    return () => subscription.remove();
+    // When alarm triggers while app is open, navigate directly to alarm screen
+    const alarmSubscription = subscribeToAlarm((active) => {
+      if (active) {
+        router.push({ pathname: '/alarm', params: { journeyId: active.journeyId } });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+      alarmSubscription();
+    };
   }, [router]);
 
   useEffect(() => {

@@ -345,6 +345,7 @@ export const strings = {
     notifications: 'Notifications',
     locationServices: 'Location services',
     batteryOptimisation: 'Battery optimisation',
+    autoStart: 'Auto-start',
     granted: 'Granted',
     denied: 'Denied',
     notAsked: 'Not asked',
@@ -408,6 +409,18 @@ export const strings = {
     batteryLater: "I'll do this later",
     openBatterySettings: 'Open battery settings',
 
+    autoStartTitle: 'Allow Hinto to start in the background',
+    autoStartBody:
+      'On most Android phones, there is a second setting called Auto-Start or Startup Manager. Without it, Hinto can be killed after the screen locks for a few minutes — even if battery optimisation is off.',
+    autoStartNote: 'This is separate from battery optimisation and must be enabled on its own.',
+    autoStartDetected: 'Detected: {manufacturer} {model}',
+    openAutoStartSettings: 'Open auto-start settings',
+    autoStartLater: "I'll do this later",
+    autoStartManual: 'Settings › Apps › Hinto › Other Permissions › Auto-start',
+    autoStartManualOppo: 'Settings › Additional Settings › Battery › App Quick Freeze › Hinto (off)',
+    autoStartManualMiui: 'Settings › Apps › Manage Apps › Hinto › Auto-start',
+    autoStartNotReviewed: 'not reviewed',
+
     alarmTitle: 'Test your alarm',
     alarmBody: 'Play the alarm now to check it is loud enough on this phone.',
 
@@ -459,6 +472,7 @@ export const strings = {
     servicesOff: 'Location services are off',
     notificationsDenied: 'Notifications recommended',
     battery: 'Battery guidance not reviewed',
+    autoStart: 'Auto-start not reviewed',
     allGood: 'Ready to alert',
   },
 
