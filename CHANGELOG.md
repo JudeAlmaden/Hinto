@@ -5,7 +5,10 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+- Pin screen now notices when the phone is offline: it warns that map tiles may
+  not load, skips reverse geocoding instead of leaving the name on a spinner, and
+  keeps the pin/coordinate/save paths working.
 
 ## [0.5.0] - 2026-11-16
 

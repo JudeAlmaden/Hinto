@@ -132,6 +132,7 @@ export const strings = {
     longitude: 'Longitude',
     invalidCoordinates: 'Enter a latitude between -90 and 90 and a longitude between -180 and 180.',
     mapFailed: 'The map could not load — check your connection. Coordinates still work.',
+    offlineMap: 'You are offline — map tiles may not load. The pin, coordinates and saving still work.',
     chooseDestination: 'Choose a destination',
     noSavedTitle: 'Nothing saved yet',
     noSavedBody: 'Search above, or drop a pin and name the stop yourself.',

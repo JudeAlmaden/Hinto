@@ -1,3 +1,4 @@
+import { useNetInfo } from '@react-native-community/netinfo';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -31,6 +32,8 @@ export default function PinDestinationScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ intent?: string }>();
   const { settings } = useSettings();
+  const net = useNetInfo();
+  const offline = net.isConnected === false;
   const paramIntent =
     params.intent === 'save' ? ('save' as const) : params.intent === 'journey' ? ('journey' as const) : null;
   // Entry points carry an intent; when none arrives the sheet lets the user pick.
@@ -80,6 +83,12 @@ export default function PinDestinationScreen() {
     let active = true;
 
     const timer = setTimeout(() => {
+      // Reverse geocoding needs a connection; fall back to a plain pin label and
+      // never leave the sheet sitting on "suggesting" offline.
+      if (offline) {
+        setName(offlinePinLabel(point));
+        return;
+      }
       if (active) setSuggesting(true);
       void suggestPlaceName(point.latitude, point.longitude)
         .then((suggested) => {
@@ -95,7 +104,7 @@ export default function PinDestinationScreen() {
       active = false;
       clearTimeout(timer);
     };
-  }, [mode, point, nameEdited]);
+  }, [mode, point, nameEdited, offline]);
 
   const locate = async () => {
     setLocating(true);
@@ -236,6 +245,12 @@ export default function PinDestinationScreen() {
             value={effectiveIntent}
             onChange={setIntent}
           />
+        ) : null}
+
+        {offline ? (
+          <ThemedText type="small" style={{ color: theme.warning }}>
+            {strings.destination.offlineMap}
+          </ThemedText>
         ) : null}
 
         {mode === 'map' ? (
