@@ -12,16 +12,27 @@ import { strings } from '@/constants/strings';
 import { capture } from '@/modules/diagnostics';
 
 import { LOCATION_TASK_NAME, type AdaptivePolicy } from '.';
+import { setPolicyApplier } from './engine';
 import { publishProviderStatus } from './state';
 import { readProviderStatus } from '@/modules/permissions/service';
 import '@/modules/location/task';
 
 const ACCURACY_MAP = {
-  balanced: Location.Accuracy.Balanced,
   high: Location.Accuracy.High,
   highest: Location.Accuracy.Highest,
   bestForNavigation: Location.Accuracy.BestForNavigation,
 } as const;
+
+/** Last request actually registered with the OS, so identical policies do not restart the fix stream. */
+let appliedPolicy: AdaptivePolicy | null = null;
+
+function samePolicy(left: AdaptivePolicy, right: AdaptivePolicy): boolean {
+  return (
+    left.accuracy === right.accuracy &&
+    left.timeIntervalMs === right.timeIntervalMs &&
+    left.distanceIntervalM === right.distanceIntervalM
+  );
+}
 
 function taskOptions(policy: AdaptivePolicy): Location.LocationTaskOptions {
   return {
@@ -49,6 +60,7 @@ export async function isTrackingActive(): Promise<boolean> {
 export async function startTracking(policy: AdaptivePolicy): Promise<void> {
   try {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, taskOptions(policy));
+    appliedPolicy = policy;
     capture('location', 'tracking_started', {
       interval: policy.timeIntervalMs,
       distance: policy.distanceIntervalM,
@@ -64,6 +76,7 @@ export async function startTracking(policy: AdaptivePolicy): Promise<void> {
 }
 
 export async function stopTracking(): Promise<void> {
+  appliedPolicy = null;
   try {
     if (await isTrackingActive()) {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
@@ -76,8 +89,13 @@ export async function stopTracking(): Promise<void> {
   }
 }
 
-/** Applies a new policy by asking the OS for a new request (Phase 5 task 2). */
+/**
+ * Replaces the OS request when the journey moves into a tighter tier.
+ * The request registered at start is the far tier; without this, a bus stays
+ * on that request for the whole ride.
+ */
 export async function applyTrackingPolicy(policy: AdaptivePolicy): Promise<void> {
+  if (appliedPolicy && samePolicy(appliedPolicy, policy)) return;
   if (!(await isTrackingActive())) return;
   await startTracking(policy);
 }
@@ -89,7 +107,7 @@ export async function refreshProviderStatus(): Promise<void> {
 
 export async function currentLocation(): Promise<Location.LocationObject | null> {
   try {
-    return await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
   } catch {
     try {
       const last = await Location.getLastKnownPositionAsync({ maxAge: 300_000 });
@@ -99,3 +117,5 @@ export async function currentLocation(): Promise<Location.LocationObject | null>
     }
   }
 }
+
+setPolicyApplier(applyTrackingPolicy);

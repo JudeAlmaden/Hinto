@@ -22,6 +22,7 @@ import {
 } from '@/modules/location/session';
 import type { ReadinessIssue } from '@/modules/permissions';
 import { formatCoordinates, formatRadius } from '@/utils/format';
+import { openActiveJourney } from '@/utils/navigation';
 import { suggestedEarlierRadius } from '@/utils/radius';
 
 export default function JourneySetupScreen() {
@@ -105,7 +106,7 @@ export default function JourneySetupScreen() {
     try {
       await startJourneySession(id);
       startedRef.current = true;
-      router.replace({ pathname: '/journey/[id]', params: { id } });
+      openActiveJourney(router, id);
     } catch (reason) {
       if (reason instanceof JourneyStartBlockedError) {
         setBlocked(reason.issues);

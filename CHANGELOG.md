@@ -5,6 +5,16 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-11-17
+
+### Fixed
+- **Reliable journey GPS tracking**: Location monitoring now keeps high GPS accuracy throughout a journey, uses shorter movement thresholds, and applies tighter tracking policies as the destination gets closer.
+- **Active journey navigation lock**: Starting a journey clears destination-selection screens; live journeys block Back and system gestures until ended.
+
+### Technical
+- Modified: `src/app/journey/new.tsx`, `src/app/journey/[id].tsx`, `src/utils/navigation.ts`, `src/modules/geofence/policy.ts`, `src/modules/geofence/__tests__/policy.test.ts`, `src/modules/location/index.ts`, `src/modules/location/service.ts`, `src/modules/location/engine.ts`, `package.json`, `CHANGELOG.md`
+- Tests: 146 passing — lint/typecheck clean
+
 ## [0.6.3] - 2026-11-17
 
 ### Added

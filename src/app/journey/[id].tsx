@@ -1,5 +1,5 @@
 import { useNetInfo } from '@react-native-community/netinfo';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -41,6 +41,7 @@ export default function ActiveJourneyScreen() {
   const id = typeof params.id === 'string' ? params.id : '';
   const tracking = useTracking();
   const [busy, setBusy] = useState(false);
+  const [allowRemoval, setAllowRemoval] = useState(false);
 
   const state = useAsyncData<Detail>(async () => {
     const db = await getDatabase();
@@ -57,6 +58,9 @@ export default function ActiveJourneyScreen() {
   const journey = state.data?.journey ?? null;
   const settings = state.data?.settings ?? DEFAULT_SETTINGS;
   const unit = settings.distance_unit;
+  const disableRemovalPrevention = usePreventRemove(
+    journey !== null && !TERMINAL_STATUSES.includes(journey.status) && !allowRemoval,
+  );
 
   if (!journey) {
     return (
@@ -100,6 +104,8 @@ export default function ActiveJourneyScreen() {
   const stopAlarmAndEnd = () =>
     void run(async () => {
       await endJourneySession(journey.id, 'completed');
+      setAllowRemoval(true);
+      disableRemovalPrevention();
       openJourneyResult(router, journey.id);
     });
 
@@ -114,6 +120,8 @@ export default function ActiveJourneyScreen() {
           // Ending early is abandoning the trip, not arriving: it must not be
           // recorded as a completed journey.
           await endJourneySession(journey.id, 'cancelled');
+          setAllowRemoval(true);
+          disableRemovalPrevention();
           openJourneyResult(router, journey.id);
         }),
     });
@@ -131,7 +139,6 @@ export default function ActiveJourneyScreen() {
   return (
     <Screen
       title={strings.journey.title}
-      back
       right={
         <MoreMenu
           items={[

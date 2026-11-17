@@ -61,14 +61,16 @@ describe('selectPolicy', () => {
     expect(policy.timeIntervalMs).toBeLessThanOrEqual(POLICY_TUNING.maxIntervalMs);
   });
 
-  it('keeps the accuracy at least balanced', () => {
-    const policy = selectPolicy({
+  it('keeps GPS accuracy even when the interval is coarsened', () => {
+    const beforeFirstFix = selectPolicy({ ...baseline, distanceM: null });
+    const degraded = selectPolicy({
       distanceM: 20_000,
       batteryLevelPct: 5,
       batterySaver: true,
       stationaryMs: 500_000,
     });
-    expect(policy.accuracy).toBe('balanced');
+    expect(beforeFirstFix.accuracy).toBe('high');
+    expect(degraded.accuracy).toBe('high');
   });
 });
 

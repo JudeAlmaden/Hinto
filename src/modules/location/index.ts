@@ -23,7 +23,13 @@ export interface TrackingSnapshot {
 }
 
 export interface AdaptivePolicy {
-  accuracy: 'balanced' | 'high' | 'highest' | 'bestForNavigation';
+  /**
+   * `high` and above map to Android's high-accuracy fused request, which powers
+   * the GPS radio. `balanced` is intentionally absent: it is allowed to use
+   * cell and Wi-Fi only, so a moving bus gets no fixes until another app
+   * (such as Maps) turns GPS on.
+   */
+  accuracy: 'high' | 'highest' | 'bestForNavigation';
   timeIntervalMs: number;
   distanceIntervalM: number;
 }

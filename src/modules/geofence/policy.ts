@@ -2,9 +2,10 @@
  * Adaptive location policy (spec §7, plan Phase 4 task 3).
  *
  * The table is data, not behaviour: `selectPolicy` picks a tier from the
- * distance to the destination, then degrades it for battery constraints. Every
- * constant lives here so the watchdog and diagnostics can report the interval
- * actually in use.
+ * distance to the destination, then lengthens the interval for battery
+ * constraints. Accuracy never drops below `high`. On Android that is the
+ * difference between a request that powers the GPS radio and a balanced
+ * request that may sit on cell and Wi-Fi until some other app asks for GPS.
  */
 
 import type { AdaptivePolicy } from '@/modules/location';
@@ -14,16 +15,21 @@ export interface PolicyTier extends AdaptivePolicy {
   maxDistanceM: number;
 }
 
-/** Furthest tier last: the first match wins. */
+/**
+ * Furthest tier last: the first match wins.
+ * Distance filters stay well under a bus's movement between fixes, and the
+ * closest tier uses no distance filter so a fix still arrives on the timer
+ * while the bus is stopped or crawling.
+ */
 export const POLICY_TABLE: readonly PolicyTier[] = [
-  { maxDistanceM: 500, accuracy: 'highest', timeIntervalMs: 10_000, distanceIntervalM: 50 },
-  { maxDistanceM: 1500, accuracy: 'high', timeIntervalMs: 15_000, distanceIntervalM: 100 },
-  { maxDistanceM: 5000, accuracy: 'balanced', timeIntervalMs: 30_000, distanceIntervalM: 250 },
+  { maxDistanceM: 500, accuracy: 'highest', timeIntervalMs: 5_000, distanceIntervalM: 0 },
+  { maxDistanceM: 1500, accuracy: 'high', timeIntervalMs: 10_000, distanceIntervalM: 20 },
+  { maxDistanceM: 5000, accuracy: 'high', timeIntervalMs: 20_000, distanceIntervalM: 40 },
   {
     maxDistanceM: Number.POSITIVE_INFINITY,
-    accuracy: 'balanced',
-    timeIntervalMs: 60_000,
-    distanceIntervalM: 500,
+    accuracy: 'high',
+    timeIntervalMs: 30_000,
+    distanceIntervalM: 80,
   },
 ] as const;
 
@@ -41,7 +47,6 @@ export const POLICY_TUNING = {
 } as const;
 
 const ACCURACY_ORDER: AdaptivePolicy['accuracy'][] = [
-  'balanced',
   'high',
   'highest',
   'bestForNavigation',

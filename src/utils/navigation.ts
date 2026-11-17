@@ -14,6 +14,15 @@ export function journeySetupParams(destination: Destination, radiusM: number) {
 }
 
 /**
+ * Opens a live journey after clearing the destination-selection flow so Back
+ * cannot reveal a still-running journey behind a previous picker screen.
+ */
+export function openActiveJourney(router: ImperativeRouter, journeyId: string) {
+  if (router.canDismiss()) router.dismissAll();
+  router.push({ pathname: '/journey/[id]', params: { id: journeyId } });
+}
+
+/**
  * Opens a finished journey's summary and drops the journey/alarm screens behind
  * it, so Back returns Home instead of reopening a trip that already ended.
  */

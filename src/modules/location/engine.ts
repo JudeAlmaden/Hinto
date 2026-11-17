@@ -48,6 +48,16 @@ interface Runtime {
 const runtimes = new Map<string, Runtime>();
 const sampleWindows = new Map<string, number[]>();
 
+/**
+ * Registered by the location service. The engine must not import that module:
+ * the service imports the task, and the task imports the engine.
+ */
+let applyPolicy: (policy: AdaptivePolicy) => Promise<void> = async () => {};
+
+export function setPolicyApplier(applier: (policy: AdaptivePolicy) => Promise<void>): void {
+  applyPolicy = applier;
+}
+
 const MAX_WINDOW_SAMPLES = 200;
 const MOVEMENT_THRESHOLD_M = 30;
 
@@ -281,6 +291,10 @@ export async function processLocationSamples(
       interval: runtime.policy.timeIntervalMs,
     });
   }
+
+  // The OS keeps whatever request was registered at start until this runs.
+  // A failed update must not discard the samples already recorded above.
+  await applyPolicy(runtime.policy).catch(() => undefined);
 }
 
 type TriggerInput = Parameters<typeof evaluateTrigger>[0];
