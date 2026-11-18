@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +13,7 @@ import { formatCopy, strings } from '@/constants/strings';
 import { MaxContentWidth, Radii, Spacing } from '@/constants/theme';
 import { getDatabase } from '@/db/client';
 import {
+  dismissAlarmPresentation,
   getActiveAlarm,
   snoozeAlarm,
   subscribeToAlarm,
@@ -45,6 +46,8 @@ export default function AlarmScreen() {
   const [activeAlarm, setActiveAlarm] = useState<ActiveAlarm | null>(getActiveAlarm());
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
+  /** False until the journey lookup settles, so the terminal copy can't flash. */
+  const [ready, setReady] = useState(false);
 
   useEffect(() => subscribeToAlarm(setActiveAlarm), []);
 
@@ -57,20 +60,26 @@ export default function AlarmScreen() {
     let cancelled = false;
 
     void (async () => {
-      const db = await getDatabase();
-      const loaded = journeyId ? await getJourney(db, journeyId) : await getActiveJourney(db);
-      if (cancelled || !loaded) return;
+      try {
+        const db = await getDatabase();
+        const loaded = journeyId ? await getJourney(db, journeyId) : await getActiveJourney(db);
+        if (cancelled || !loaded) return;
 
-      const [latest, config] = await Promise.all([
-        getLatestJourneyAlert(db, loaded.id),
-        getSettings(db),
-      ]);
-      if (cancelled) return;
+        const [latest, config] = await Promise.all([
+          getLatestJourneyAlert(db, loaded.id),
+          getSettings(db),
+        ]);
+        if (cancelled) return;
 
-      setJourney(loaded);
-      setAlert(latest);
-      setSettings(config);
-    })().catch(() => undefined);
+        setJourney(loaded);
+        setAlert(latest);
+        setSettings(config);
+      } catch {
+        // Fall through to the empty state; the lookup must never trap the screen.
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -120,11 +129,6 @@ export default function AlarmScreen() {
     return () => sub.remove();
   }, [snoozed]);
 
-  const goHome = () => {
-    if (router.canDismiss()) router.dismissAll();
-    else router.replace('/');
-  };
-
   // A ref guards the tap itself: `busy` only updates on the next render, which
   // is too late for two presses in the same frame.
   const acting = useRef(false);
@@ -139,6 +143,20 @@ export default function AlarmScreen() {
       acting.current = false;
       setBusy(false);
     }
+  };
+
+  /**
+   * Leaving a stale alarm screen. The alarm is stopped first, otherwise a live
+   * presentation re-pushes this screen the moment it is dismissed. `dismissAll`
+   * is a no-op when the alarm is the only route in the stack (cold start from a
+   * notification), so Home is always the explicit destination.
+   */
+  const goHome = () => {
+    void run(async () => {
+      await dismissAlarmPresentation().catch(() => undefined);
+      if (router.canDismiss()) router.dismissAll();
+      router.replace('/');
+    });
   };
 
   const finish = () => {
@@ -200,7 +218,14 @@ export default function AlarmScreen() {
     <ThemedView style={styles.root}>
       <Stack.Screen options={{ gestureEnabled: false, headerShown: false }} />
       <SafeAreaView style={styles.safe}>
-        {!journey || ended ? (
+        {!ready ? (
+          <VStack center flex gap="three">
+            <ActivityIndicator size="large" />
+            <ThemedText type="small" themeColor="textSecondary">
+              {strings.common.loading}
+            </ThemedText>
+          </VStack>
+        ) : !journey || ended ? (
           <VStack center flex gap="three">
             <ThemedText style={styles.headline}>{strings.alarm.headline}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
@@ -210,7 +235,6 @@ export default function AlarmScreen() {
           </VStack>
         ) : snoozed ? (
           <VStack center flex gap="three">
-            <ThemedText style={styles.eyebrow}>{strings.alarm.headline}</ThemedText>
             <ThemedText style={styles.destination}>{journey.destinationName}</ThemedText>
             <Card style={styles.snoozeCard}>
               <ThemedText style={styles.body}>
@@ -231,13 +255,15 @@ export default function AlarmScreen() {
               onPress={() => void finish()}
             />
             <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
+              {strings.alarm.awakeNote}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
               {strings.alarm.limitation}
             </ThemedText>
           </VStack>
         ) : (
           <VStack center flex gap="three">
             <Mascot pose="alert" height={104} />
-            <ThemedText style={styles.eyebrow}>{strings.alarm.headline.toUpperCase()}</ThemedText>
             <ThemedText style={styles.destination}>{journey.destinationName}</ThemedText>
             <ThemedText style={styles.distance}>
               {formatCopy(strings.alarm.away, { distance })}
@@ -269,6 +295,9 @@ export default function AlarmScreen() {
               />
             </VStack>
             <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
+              {strings.alarm.awakeNote}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
               {strings.alarm.limitation}
             </ThemedText>
           </VStack>
@@ -288,12 +317,6 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
     width: '100%',
-  },
-  eyebrow: {
-    fontSize: 14,
-    letterSpacing: 1.5,
-    fontWeight: '700',
-    color: '#F5A623',
   },
   headline: {
     fontSize: 28,

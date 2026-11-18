@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Icon } from '@/components/ui/icon';
 import { Row, Stack } from '@/components/ui/layout';
 import { PlaceIcon } from '@/components/ui/place';
-import { strings } from '@/constants/strings';
+import { formatCopy, strings } from '@/constants/strings';
 import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Place } from '@/modules/places';
@@ -41,7 +41,10 @@ export function SavedPlaces({
             {place.name}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.subtitle}>
-            {strings.place.categories[place.category]} · {formatDistance(place.defaultRadiusM, unit)}
+            {strings.place.categories[place.category]},{' '}
+            {formatCopy(strings.place.distanceAway, {
+              distance: formatDistance(place.defaultRadiusM, unit),
+            })}
           </ThemedText>
         </Stack>
       ))}

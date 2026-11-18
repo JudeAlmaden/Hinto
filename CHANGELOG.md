@@ -5,6 +5,38 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-11-18
+
+### Added
+- **Distance-to-alarm dial**: the Journey screen leads with a tick dial filled from where the trip actually started (`start_distance_m`) to the alert radius, with remaining distance, a state caption and a `Start | Elapsed | Alert` stat row beneath it.
+- **Compact dial on Home**: the active-journey card shows a 64 dp version of the same dial, so Home and Journey read as one system.
+- **Sleep screen**: a moon control in the Journey navbar blanks the UI to true black; tracking and the alarm keep running, and a tap (or hardware back) wakes it.
+- **Alert-radius framing on the pin map**: the camera fits the chosen radius on open and re-frames when the radius chip changes instead of sitting at a fixed zoom.
+
+### Changed
+- **Active journey card**: one hero distance, status as a single sentence instead of a pill plus a meta row, matching destination badge and chevron, the whole card taps through to the journey, Pause is primary and End the quiet danger action.
+- **Journey companion**: the speech bubble is gone; a 96 dp mascot sits under centred guidance copy, anchored to the bottom of the content area, and the explanatory body only appears when tracking is not nominal.
+- **Typography pass**: section labels, onboarding taglines and journey stat labels are sentence case (no upper-casing inside `SectionLabel`), and middle-dot meta strings were replaced with commas or separate elements across Home, Places, History, alarm notifications and the dropped-pin label.
+- **Back navigation**: back gestures are enabled app-wide and the Journey screen no longer swallows Back via `usePreventRemove`; leaving it keeps the journey tracking.
+- **Pin sheet**: intent is chosen with the always-visible segmented control (single primary CTA), the custom credit overlay is the only OSM attribution shown, and the centre marker is pin-shaped.
+- **Journey actions**: Pause/Resume is primary and End a danger-ghost button on both Home and the Journey screen.
+- **Agent docs consolidated**: `Design.md` now lives at `.agents/Design.md`, the 49 redundant per-assistant skill copies (`.claude`, `.windsurf`, `.trae`, `.zencoder`, …) were removed in favour of the single `.agents/skills/` set, and `AGENTS.md` gained a "read `.agents/` first" section covering skills, the design system and the session scratchpad.
+
+### Fixed
+- **Alarm "Go home" dead button**: on the ended/no-journey alarm screen the button could no-op when the alarm was the first route in the stack; it now stops the alarm presentation and always lands on Home, and the terminal copy waits for the journey lookup instead of flashing before data arrives.
+- **Interrupted journeys**: closed and reported instead of retried, with the summary surfaced on Home.
+- **Dial crash on Android**: removed `react-native-svg` (existing builds have no `RNSVGCircle` ViewManager); the dial is drawn with plain views.
+
+### Removed
+- `react-native-svg` dependency, and the dial's decorative dots (outside accent dot and progress head at low progress).
+- Dead pin-sheet styles and the duplicate "Save as place" / "Use this point" action row.
+
+### Technical
+- Modified: `src/app/journey/[id].tsx`, `src/app/(tabs)/index.tsx`, `src/app/alarm.tsx`, `src/app/_layout.tsx`, `src/app/destination/pin.tsx`, `src/components/home/journey-status-card.tsx`, `src/components/pin-map.tsx`, `src/components/ui/controls.tsx`, `src/constants/strings.ts`, `src/modules/location/{engine,session}.ts`, `src/modules/journeys/{service,repository}.ts`, `AGENTS.md`, `README.md`, `skills-lock.json`, `package.json`, `package-lock.json`, `CHANGELOG.md`
+- New: `src/components/journey/distance-ring.tsx`, `src/db/migrations/002_journey_start_distance.ts`, `.agents/Design.md`, `.agents/skills/frontend-design/`
+- Deleted: root `Design.md` and 49 duplicate per-assistant skill trees (`.claude`, `.windsurf`, `.trae`, `.zencoder`, `.terramind`, `.tinycloud`, `.vibe`, `.zcode` and 41 others)
+- Tests: 149 passing — lint/typecheck clean
+
 ## [0.6.4] - 2026-11-17
 
 ### Fixed

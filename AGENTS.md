@@ -1,5 +1,19 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## 0. Always Read `.agents/` First
+
+Before analyzing, planning, or writing code, **always check and read `.agents/`**:
+
+1. **Universal Skills (`.agents/skills/`)**:
+   - Contains repository skills for Expo SDK 58, Expo Router, EAS, native UI, data fetching, animations, and design system.
+   - When touching navigation, UI, gestures, native modules, or EAS workflows, read the corresponding skill (`.agents/skills/<skill-name>/SKILL.md`) first.
+2. **Design System Source of Truth (`.agents/Design.md`)**:
+   - The authoritative reference for UI tokens: colors (`Colors.light` / `Colors.dark`), typography (Plus Jakarta Sans), 4-point spacing (`Spacing`), corner radii (`Radii`), layout primitives (`Box`, `Row`, `Stack`), and mascot guidelines (`<Mascot />`).
+   - Always consult `.agents/Design.md` before creating or editing screens or components. Never hardcode colors or arbitrary spacing numbers.
+3. **Session Scratchpad (`.agents/RECENT_CHANGES.md`)**:
+   - Working memory across AI sessions. Read this file at the start of every session to know what changed recently.
+   - Keep this file updated as you implement fixes or features.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

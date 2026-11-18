@@ -189,6 +189,9 @@ export async function processLocationSamples(
   };
 
   const ordered = [...samples].sort((a, b) => a.timestamp - b.timestamp);
+  // Progress is measured from where the rider actually set off, so the first
+  // fresh sample of the journey becomes its baseline distance.
+  let recordStartDistance = journey.startDistanceM === null;
 
   for (const raw of ordered) {
     if (!Number.isFinite(raw.latitude) || !Number.isFinite(raw.longitude)) continue;
@@ -263,11 +266,13 @@ export async function processLocationSamples(
     await updateJourney(db, journey.id, {
       lastLocationAt: sample.timestamp,
       lastKnownDistanceM: decision.distanceM,
+      ...(recordStartDistance ? { startDistanceM: distanceM } : {}),
       ...(decision.enteredRadius ? { enteredRadiusAt: now } : {}),
       ...(decision.fireStage
         ? { status: 'triggered' as const, triggeredAt: journey.triggeredAt ?? now }
         : {}),
     });
+    recordStartDistance = false;
   }
 
   const window = sampleWindows.get(journey.id) ?? [];

@@ -67,7 +67,7 @@ export default function HistoryScreen() {
     if (summary.status === 'cancelled') return strings.history.cancelled;
     if (summary.alertType === null) return strings.history.noAlert;
     const distance = formatDistance(summary.triggerDistanceM, settings.distance_unit);
-    return `${formatCopy(strings.history.alerted, { distance })} · ${
+    return `${formatCopy(strings.history.alerted, { distance })}, ${
       summary.alertType === 'snooze' ? strings.history.snoozed : strings.history.dismissed
     }`;
   };
@@ -153,7 +153,7 @@ export default function HistoryScreen() {
                       {formatDuration(summary.durationMs)}
                       {summary.finalDistanceM === null
                         ? ''
-                        : ` · ${formatCopy(strings.history.endedAt, {
+                        : `, ${formatCopy(strings.history.endedAt, {
                             distance: formatDistance(summary.finalDistanceM, settings.distance_unit),
                           })}`}
                     </ThemedText>

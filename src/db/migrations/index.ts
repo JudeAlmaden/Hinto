@@ -6,6 +6,10 @@
  */
 
 import { statements as initialStatements, version as initialVersion } from './001_initial';
+import {
+  statements as startDistanceStatements,
+  version as startDistanceVersion,
+} from './002_journey_start_distance';
 
 export interface Migration {
   version: number;
@@ -14,6 +18,7 @@ export interface Migration {
 
 export const MIGRATIONS: readonly Migration[] = [
   { version: initialVersion, statements: initialStatements },
+  { version: startDistanceVersion, statements: startDistanceStatements },
 ].sort((a, b) => a.version - b.version);
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]?.version ?? 0;

@@ -34,8 +34,8 @@ export function NextStopCard({
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
             {strings.place.categories[place.category]}
             {distanceM !== null
-              ? ` · ${formatDistance(distanceM, unit)} ${strings.journey.toGo}`
-              : ` · ${strings.home.alarmAt} ${formatDistance(place.defaultRadiusM, unit)}`}
+              ? `, ${formatDistance(distanceM, unit)} ${strings.journey.toGo}`
+              : `, ${strings.home.alarmAt} ${formatDistance(place.defaultRadiusM, unit)}`}
           </ThemedText>
         </Stack>
       </Row>

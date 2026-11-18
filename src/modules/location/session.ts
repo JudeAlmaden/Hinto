@@ -17,6 +17,7 @@ import type { Journey } from '@/modules/journeys';
 import { deleteJourney, getActiveJourney, getJourney } from '@/modules/journeys/repository';
 import {
   activateJourney,
+  closeInterruptedJourney,
   finishJourney,
   interruptJourney,
   pauseJourney,
@@ -111,11 +112,39 @@ export async function resumeJourneySession(journeyId: string): Promise<void> {
   const journey = await getJourney(db, journeyId);
   if (!journey) return;
 
+  // An interrupted journey is over, not paused: finish it instead of trying
+  // again to track a trip whose fixes were already lost (D2).
+  if (journey.status === 'interrupted') {
+    await finishInterruptedJourneySession(journeyId);
+    return;
+  }
+
   await assertReady();
   const { policy } = await policyFor(journey);
   await resumeJourney(db, journeyId);
   await startTracking(policy);
   publishJourneyStatus('active');
+}
+
+/**
+ * Finishes an interrupted journey: tracking and any alarm presentation are torn
+ * down, the live status drops to idle and the record is closed where it stopped.
+ * Nothing here retries the journey.
+ */
+export async function finishInterruptedJourneySession(
+  journeyId: string,
+): Promise<Journey | null> {
+  const db = await getDatabase();
+  const journey = await getJourney(db, journeyId);
+  if (!journey) return null;
+  if (journey.status !== 'interrupted') return journey;
+
+  await stopTracking();
+  await dismissAlarmPresentation();
+  clearRuntime(journeyId);
+  publishJourneyStatus('idle');
+
+  return (await closeInterruptedJourney(db, journeyId)) ?? journey;
 }
 
 export async function endJourneySession(
@@ -152,7 +181,7 @@ export interface BootstrapResult {
 
 /**
  * Runs once on launch. Automatic restart is never promised (D2): a journey that
- * outlived its trust window becomes `interrupted` and Home offers Resume/End.
+ * outlived its trust window becomes `interrupted` and is finished, never resumed.
  */
 export async function bootstrapJourneySession(): Promise<BootstrapResult> {
   const db = await getDatabase();
@@ -168,7 +197,9 @@ export async function bootstrapJourneySession(): Promise<BootstrapResult> {
   } else if (result.journey.status === 'triggered') {
     publishJourneyStatus('triggered');
   } else if (result.interrupted) {
-    publishJourneyStatus('idle');
+    // Tracking was lost before launch: finish the trip rather than prompt a
+    // resume that would only lose the fix again.
+    await finishInterruptedJourneySession(result.journey.id);
   } else {
     publishJourneyStatus('active');
     if (!(await isTrackingActive())) {
@@ -182,7 +213,8 @@ export async function bootstrapJourneySession(): Promise<BootstrapResult> {
 
 /**
  * Watchdog tick, called while Home or the journey screen is visible. It never
- * claims tracking beyond D14's limits and interrupts an abandoned journey.
+ * claims tracking beyond D14's limits: an abandoned journey is interrupted and
+ * finished on the spot instead of being retried.
  */
 export async function refreshJourneySession(): Promise<Journey | null> {
   const db = await getDatabase();
@@ -196,10 +228,8 @@ export async function refreshJourneySession(): Promise<Journey | null> {
   if (journey.status !== 'paused') {
     const reference = journey.lastLocationAt ?? journey.startedAt;
     if (reference !== null && Date.now() - reference >= WATCHDOG.interruptedMs) {
-      await stopTracking();
       await interruptJourney(db, journey.id, 'stale_gps');
-      publishJourneyStatus('idle');
-      return getJourney(db, journey.id);
+      return finishInterruptedJourneySession(journey.id);
     }
   }
 

@@ -17,5 +17,5 @@ export function formatCoordinates({ latitude, longitude }: PinPoint): string {
 
 /** Label used when reverse geocoding is unavailable (D17). */
 export function offlinePinLabel(point: PinPoint): string {
-  return `Dropped pin · ${formatCoordinates(point)}`;
+  return `Dropped pin (${formatCoordinates(point)})`;
 }

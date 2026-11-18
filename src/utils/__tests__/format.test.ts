@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { dayBucket, formatDistance, formatDuration, formatPercent } from '../format';
+import { dayBucket, formatDistance, formatDuration, formatElapsedTime, formatPercent } from '../format';
 
 describe('formatDistance', () => {
   it('shows metres below one kilometre', () => {
@@ -35,6 +35,23 @@ describe('formatDuration', () => {
 
   it('returns n/a when unknown', () => {
     expect(formatDuration(null)).toBe('n/a');
+  });
+});
+
+describe('formatElapsedTime', () => {
+  it('formats seconds and minutes as MM:SS', () => {
+    expect(formatElapsedTime(0)).toBe('00:00');
+    expect(formatElapsedTime(45_000)).toBe('00:45');
+    expect(formatElapsedTime(5 * 60_000 + 23_000)).toBe('05:23');
+  });
+
+  it('formats hours as H:MM:SS', () => {
+    expect(formatElapsedTime(3600_000 + 4 * 60_000 + 12_000)).toBe('1:04:12');
+  });
+
+  it('returns dash for invalid or null', () => {
+    expect(formatElapsedTime(null)).toBe('—');
+    expect(formatElapsedTime(-100)).toBe('—');
   });
 });
 

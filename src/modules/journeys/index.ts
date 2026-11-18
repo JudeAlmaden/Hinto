@@ -27,6 +27,8 @@ export interface Journey {
   endedAt: number | null;
   lastLocationAt: number | null;
   lastKnownDistanceM: number | null;
+  /** Distance at the first trustworthy sample — the progress bar's baseline. */
+  startDistanceM: number | null;
   alarmDismissedAt: number | null;
   /** First trustworthy sample inside the radius — drives the D9 alert-delay metric. */
   enteredRadiusAt: number | null;

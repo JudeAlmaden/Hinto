@@ -5,9 +5,10 @@ import {
   Map,
   RasterSource,
   ViewAnnotation,
+  type CameraRef,
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -44,6 +45,19 @@ function makeCirclePolygon(lng: number, lat: number, radiusM: number): GeoJSON.F
     properties: {},
   };
 }
+
+/**
+ * Bounding box of the alert circle, so the camera can frame the chosen radius
+ * instead of sitting at a fixed zoom whatever the user picks.
+ */
+function circleBounds(lat: number, lng: number, radiusM: number): [number, number, number, number] {
+  const latDelta = radiusM / 111_320;
+  const lngDelta = radiusM / (111_320 * Math.max(0.01, Math.cos((lat * Math.PI) / 180)));
+  return [lng - lngDelta, lat - latDelta, lng + lngDelta, lat + latDelta];
+}
+
+/** Room around the circle so its edge never touches the map frame. */
+const CIRCLE_PADDING = { top: 48, right: 48, bottom: 48, left: 48 };
 
 interface Props {
   center: PinPoint;
@@ -82,14 +96,39 @@ export function PinMap({
   onFailure,
   style,
 }: Props) {
-  const circleData = useMemo(() => {
-    if (!radiusM) return null;
-    // The radius always belongs to the pin. In centre mode the camera sits still
-    // and only the reported point moves, so `center` must not win here — that is
-    // what left the circle behind while the pin slid across the map.
-    const target = pin ?? center;
-    return makeCirclePolygon(target.longitude, target.latitude, radiusM);
-  }, [radiusM, center, pin]);
+  const cameraRef = useRef<CameraRef>(null);
+
+  // The radius always belongs to the pin. In centre mode the camera sits still
+  // and only the reported point moves, so `center` must not win here — that is
+  // what left the circle behind while the pin slid across the map.
+  const target = pin ?? center;
+
+  const circleData = useMemo(
+    () => (radiusM ? makeCirclePolygon(target.longitude, target.latitude, radiusM) : null),
+    [radiusM, target],
+  );
+
+  // The first view already frames the circle via `initialViewState`; afterwards,
+  // changing the radius re-frames so 500 m and 5 km look like different places.
+  // Panning changes `target`, so the guard keys off the radius: a drag must never
+  // be undone by a re-fit.
+  const framedRadiusRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!radiusM) {
+      framedRadiusRef.current = null;
+      return;
+    }
+    if (framedRadiusRef.current === null) {
+      framedRadiusRef.current = radiusM;
+      return;
+    }
+    if (framedRadiusRef.current === radiusM) return;
+    framedRadiusRef.current = radiusM;
+    cameraRef.current?.fitBounds(circleBounds(target.latitude, target.longitude, radiusM), {
+      padding: CIRCLE_PADDING,
+      duration: 300,
+    });
+  }, [radiusM, target]);
 
   return (
     <View style={[styles.wrap, style]}>
@@ -98,8 +137,9 @@ export function PinMap({
         style={styles.map}
         logo={false}
         compass={false}
-        attribution
-        attributionPosition={{ bottom: 6, right: 6 }}
+        /* The credit overlay below stays visible without interaction; the
+           built-in control would duplicate it. */
+        attribution={false}
         onPress={(event) => {
           onPress?.();
           if (onPick) {
@@ -117,10 +157,15 @@ export function PinMap({
         }
         onDidFailLoadingMap={() => onFailure()}>
         <Camera
-          initialViewState={{
-            center: [center.longitude, center.latitude],
-            zoom: centerPin ? 15 : 15,
-          }}
+          ref={cameraRef}
+          initialViewState={
+            radiusM
+              ? {
+                  bounds: circleBounds(target.latitude, target.longitude, radiusM),
+                  padding: CIRCLE_PADDING,
+                }
+              : { center: [center.longitude, center.latitude], zoom: 15 }
+          }
         />
         <RasterSource
           id="osm"
@@ -165,6 +210,9 @@ export function PinMap({
           <View style={styles.pin}>
             <View style={styles.pinDot} />
           </View>
+          {/* Tip lands on the coordinate the map reports, so the marker reads
+              as a pin rather than a dot floating over the target. */}
+          <View style={styles.pinTip} />
         </View>
       ) : null}
 
@@ -212,8 +260,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -13,
+    width: 26,
+    marginTop: -36,
     marginLeft: -13,
+    alignItems: 'center',
+  },
+  pinTip: {
+    width: 0,
+    height: 0,
+    marginTop: -1,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#D99A43',
   },
   credit: {
     position: 'absolute',

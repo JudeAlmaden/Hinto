@@ -52,6 +52,21 @@ export function formatDuration(durationMs: number | null | undefined): string {
   return formatCopy(strings.common.hoursMinutes, { hours, minutes });
 }
 
+/** Digital stopwatch formatting for active journey timer: `04:12`, `1:04:12`. */
+export function formatElapsedTime(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined || !Number.isFinite(ms) || ms < 0) {
+    return '—';
+  }
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function pad(value: number): string {
   return value.toString().padStart(2, '0');
 }

@@ -38,7 +38,7 @@ npm test
 
 ## Docs
 
-- `Design.md` — palette, typography, spacing, navigation, mascot rules.
+- `.agents/Design.md` — palette, typography, spacing, navigation, mascot rules.
 - `CHANGELOG.md` — release history.
 - `AGENTS.md` — workflow rules for contributors and agents.
 - `docs/archive/` — historical product spec, implementation plan and wireframes.

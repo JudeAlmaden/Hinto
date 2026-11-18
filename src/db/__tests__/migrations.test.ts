@@ -12,7 +12,7 @@ describe('migration registry', () => {
   });
 
   it('reports the last registered version', () => {
-    expect(LATEST_SCHEMA_VERSION).toBe(1);
+    expect(LATEST_SCHEMA_VERSION).toBe(2);
     expect(MIGRATIONS.at(-1)?.version).toBe(LATEST_SCHEMA_VERSION);
   });
 

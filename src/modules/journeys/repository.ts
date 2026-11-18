@@ -13,7 +13,8 @@ import type { AlertType, Journey, JourneyAlert, JourneyAlertRule, JourneyStatus 
 
 const JOURNEY_COLUMNS = `id, place_id, destination_name, destination_latitude, destination_longitude,
   radius_m, status, started_at, triggered_at, ended_at, last_location_at, last_known_distance_m,
-  alarm_dismissed_at, entered_radius_at, start_battery_pct, end_battery_pct, created_at`;
+  alarm_dismissed_at, entered_radius_at, start_battery_pct, end_battery_pct, start_distance_m,
+  created_at`;
 
 interface JourneyRow {
   id: string;
@@ -28,6 +29,7 @@ interface JourneyRow {
   ended_at: number | null;
   last_location_at: number | null;
   last_known_distance_m: number | null;
+  start_distance_m: number | null;
   alarm_dismissed_at: number | null;
   entered_radius_at: number | null;
   start_battery_pct: number | null;
@@ -68,6 +70,7 @@ export function mapJourneyRow(row: JourneyRow): Journey {
     endedAt: row.ended_at,
     lastLocationAt: row.last_location_at,
     lastKnownDistanceM: row.last_known_distance_m,
+    startDistanceM: row.start_distance_m,
     alarmDismissedAt: row.alarm_dismissed_at,
     enteredRadiusAt: row.entered_radius_at,
     startBatteryPct: row.start_battery_pct,
@@ -140,6 +143,7 @@ export async function createJourney(db: SqlDatabase, input: NewJourney): Promise
     endedAt: null,
     lastLocationAt: null,
     lastKnownDistanceM: null,
+    startDistanceM: null,
     alarmDismissedAt: null,
     enteredRadiusAt: null,
     startBatteryPct: null,
@@ -149,7 +153,7 @@ export async function createJourney(db: SqlDatabase, input: NewJourney): Promise
 
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `INSERT INTO journeys (${JOURNEY_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO journeys (${JOURNEY_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       journey.id,
       journey.placeId,
       journey.destinationName,
@@ -166,6 +170,7 @@ export async function createJourney(db: SqlDatabase, input: NewJourney): Promise
       journey.enteredRadiusAt,
       journey.startBatteryPct,
       journey.endBatteryPct,
+      journey.startDistanceM,
       journey.createdAt,
     );
 
@@ -235,6 +240,7 @@ export type JourneyPatch = Partial<
     | 'endedAt'
     | 'lastLocationAt'
     | 'lastKnownDistanceM'
+    | 'startDistanceM'
     | 'alarmDismissedAt'
     | 'enteredRadiusAt'
     | 'startBatteryPct'
@@ -249,6 +255,7 @@ const PATCH_COLUMNS: Record<keyof JourneyPatch, string> = {
   endedAt: 'ended_at',
   lastLocationAt: 'last_location_at',
   lastKnownDistanceM: 'last_known_distance_m',
+  startDistanceM: 'start_distance_m',
   alarmDismissedAt: 'alarm_dismissed_at',
   enteredRadiusAt: 'entered_radius_at',
   startBatteryPct: 'start_battery_pct',

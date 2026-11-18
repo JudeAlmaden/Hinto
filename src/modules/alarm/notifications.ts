@@ -36,7 +36,7 @@ export async function postAlarmNotification(request: AlarmRequest): Promise<void
     await Notifications.scheduleNotificationAsync({
       content: {
         title: strings.alarm.headline,
-        body: `${request.destinationName} · ${formatCopy(strings.alarm.away, {
+        body: `${request.destinationName}, ${formatCopy(strings.alarm.away, {
           distance: formatDistance(request.distanceM, 'km'),
         })}`,
         sound: soundFileName(request.sound),
@@ -65,7 +65,7 @@ export async function scheduleSnoozeNotification(
     return await Notifications.scheduleNotificationAsync({
       content: {
         title: strings.alarm.headline,
-        body: `${request.destinationName} · ${formatCopy(strings.alarm.away, {
+        body: `${request.destinationName}, ${formatCopy(strings.alarm.away, {
           distance: formatDistance(request.distanceM, 'km'),
         })}`,
         sound: soundFileName(request.sound),

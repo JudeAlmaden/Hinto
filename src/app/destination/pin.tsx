@@ -442,16 +442,14 @@ export default function PinDestinationScreen() {
                 Keyboard.dismiss();
               }
             }}>
-            {paramIntent === null ? (
-              <SegmentedControl
-                options={[
-                  { value: 'journey', label: strings.destination.intentJourney },
-                  { value: 'save', label: strings.destination.intentPlace },
-                ]}
-                value={effectiveIntent}
-                onChange={setIntent}
-              />
-            ) : null}
+            <SegmentedControl
+              options={[
+                { value: 'journey', label: strings.destination.intentJourney },
+                { value: 'save', label: strings.destination.intentPlace },
+              ]}
+              value={effectiveIntent}
+              onChange={setIntent}
+            />
 
             {offline ? (
               <ThemedText type="small" style={{ color: theme.warning }}>
@@ -535,27 +533,7 @@ export default function PinDestinationScreen() {
               loading={savingPlace}
             />
 
-            <Row between pt="one">
-              <Pressable
-                onPress={() =>
-                  effectiveIntent === 'save'
-                    ? router.push({
-                        pathname: '/journey/new',
-                        params: journeySetupParams(
-                          { name: resolvedName(), ...(point ?? FALLBACK), placeId: null },
-                          radius,
-                        ),
-                      })
-                    : void savePlace()
-                }
-                disabled={!point}>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {effectiveIntent === 'save'
-                    ? strings.destination.usePoint
-                    : strings.destination.savePlace}
-                </ThemedText>
-              </Pressable>
-
+            <Row pt="one" justify="flex-end">
               <Pressable onPress={mode === 'map' ? () => setMode('coordinates') : showMap}>
                 <ThemedText type="small" themeColor="textSecondary">
                   {mode === 'map' ? strings.destination.coordinateEntry : strings.destination.showMap}
@@ -640,17 +618,6 @@ const styles = StyleSheet.create({
   dropdownText: {
     flex: 1,
     gap: 2,
-  },
-  titlePill: {
-    paddingHorizontal: Spacing.three,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   fab: {
     position: 'absolute',

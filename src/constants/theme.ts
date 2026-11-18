@@ -1,5 +1,5 @@
 /**
- * Design tokens (Desig.md).
+ * Design tokens (.agents/Design.md).
  *
  * Warm Daylight in light mode and a matching warm-night palette in dark mode,
  * so the app reads as the same product whichever scheme the phone uses. Every
@@ -101,7 +101,7 @@ export const Fonts = Platform.select({
   },
 });
 
-/** 4-point scale from Desig.md §4. */
+/** 4-point scale from .agents/Design.md §4. */
 export const Spacing = {
   half: 2,
   one: 4,

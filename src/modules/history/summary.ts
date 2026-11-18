@@ -56,7 +56,7 @@ export function countAlerts(summaries: readonly JourneySummary[]): number {
   return summaries.filter((summary) => summary.alertType !== null).length;
 }
 
-/** "alerted 1.0 km · dismissed" / "no alert · ended manually". */
+/** "alerted 1.0 km, dismissed" / "no alert, ended manually". */
 export function describeOutcome(
   summary: JourneySummary,
   copy: { alerted: string; noAlert: string; dismissed: string; snoozed: string; interrupted: string; cancelled: string },
@@ -65,5 +65,5 @@ export function describeOutcome(
   if (summary.status === 'cancelled') return copy.cancelled;
   if (summary.alertType === null) return copy.noAlert;
   const descriptor = summary.alertType === 'snooze' ? copy.snoozed : copy.dismissed;
-  return copy.alerted.replace('{distance}', '').trim() + ` · ${descriptor}`;
+  return copy.alerted.replace('{distance}', '').trim() + `, ${descriptor}`;
 }

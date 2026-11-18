@@ -62,7 +62,7 @@ export default function JourneyHistoryScreen() {
       : journey.status === 'cancelled'
         ? strings.history.cancelled
         : alert
-          ? `${strings.history.alerted.replace('{distance}', formatDistance(alert.triggerDistanceM, unit))} · ${
+          ? `${strings.history.alerted.replace('{distance}', formatDistance(alert.triggerDistanceM, unit))}, ${
               alert.snoozedUntil !== null ? strings.history.snoozed : strings.history.dismissed
             }`
           : strings.history.notTriggered;

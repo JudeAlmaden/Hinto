@@ -20,6 +20,7 @@ function journey(overrides: Partial<Journey> = {}): Journey {
     endedAt: NOW,
     lastLocationAt: NOW - 1000,
     lastKnownDistanceM: 300,
+    startDistanceM: 4200,
     alarmDismissedAt: null,
     enteredRadiusAt: NOW - 11 * 60_000,
     startBatteryPct: 80,

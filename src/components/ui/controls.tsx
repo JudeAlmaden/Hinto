@@ -18,7 +18,7 @@ import { ThemedView } from '@/components/themed-view';
 import { FontFamilies, Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerGhost';
 
 export function AppButton({
   label,
@@ -47,7 +47,13 @@ export function AppButton({
           : 'transparent';
 
   const textColor =
-    variant === 'primary' ? theme.accentText : variant === 'danger' ? '#FFFFFF' : theme.text;
+    variant === 'primary'
+      ? theme.accentText
+      : variant === 'danger'
+        ? '#FFFFFF'
+        : variant === 'dangerGhost'
+          ? theme.danger
+          : theme.text;
 
   return (
     <Pressable
@@ -60,8 +66,8 @@ export function AppButton({
         {
           backgroundColor,
           opacity: disabled ? 0.45 : pressed ? 0.82 : 1,
-          borderColor: variant === 'ghost' ? theme.border : 'transparent',
-          borderWidth: variant === 'ghost' ? StyleSheet.hairlineWidth : 0,
+          borderColor: variant === 'ghost' || variant === 'dangerGhost' ? theme.border : 'transparent',
+          borderWidth: variant === 'ghost' || variant === 'dangerGhost' ? StyleSheet.hairlineWidth : 0,
         },
         style,
       ]}>
@@ -129,7 +135,7 @@ export function SectionLabel({ children, right }: { children: string; right?: Re
   return (
     <View style={styles.sectionRow}>
       <ThemedText type="small" themeColor="textSecondary" style={styles.sectionLabel}>
-        {children.toUpperCase()}
+        {children}
       </ThemedText>
       {right}
     </View>
@@ -326,8 +332,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
   },
   sectionLabel: {
-    fontSize: 12,
-    letterSpacing: 0.8,
+    fontSize: 13,
     fontWeight: '700',
   },
   card: {

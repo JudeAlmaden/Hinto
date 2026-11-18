@@ -31,11 +31,15 @@ import { useTracking } from '@/hooks/use-tracking';
 import { DEFAULT_SETTINGS } from '@/modules/settings/schema';
 import type { Journey } from '@/modules/journeys';
 import { listJourneys, listRecentDestinations } from '@/modules/journeys/repository';
-import { endJourneySession, pauseJourneySession, resumeJourneySession } from '@/modules/location/session';
+import {
+  endJourneySession,
+  pauseJourneySession,
+  resumeJourneySession,
+} from '@/modules/location/session';
 import type { ReadinessIssue } from '@/modules/permissions';
 import { getReadinessIssues } from '@/modules/permissions/service';
 import type { RecentDestination } from '@/modules/places';
-import { journeySetupParams } from '@/utils/navigation';
+import { journeySetupParams, openJourneyResult } from '@/utils/navigation';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -335,7 +339,6 @@ export default function HomeScreen() {
         <JourneyStatusCard
           journey={journey}
           status={tracking.status}
-          accuracyM={tracking.accuracyM}
           lastSampleAt={tracking.lastSampleAt}
           distanceM={distanceM}
           unit={unit}
@@ -365,33 +368,17 @@ export default function HomeScreen() {
       {!journey && interrupted ? (
         <Card style={styles.strip}>
           <Row gap="two">
-            <Mascot pose="alert" height={76} />
+            <Mascot pose="alert" height={64} />
             <ThemedText type="small" style={styles.interruptedText}>
-              {strings.home.resumed}
+              {strings.home.interruptNote}
             </ThemedText>
           </Row>
-          <Row gap="two">
-            <AppButton
-              label={strings.home.resume}
-              onPress={() => run(() => resumeJourneySession(interrupted.id))}
-              disabled={busy}
-              style={styles.action}
-            />
-            <AppButton
-              label={strings.home.end}
-              variant="ghost"
-              onPress={() => run(() => endJourneySession(interrupted.id, 'cancelled'))}
-              disabled={busy}
-              style={styles.action}
-            />
-          </Row>
+          <AppButton
+            label={strings.journey.viewSummary}
+            variant="secondary"
+            onPress={() => openJourneyResult(router, interrupted.id)}
+          />
         </Card>
-      ) : null}
-
-      {journey ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {strings.home.startAnother}
-        </ThemedText>
       ) : null}
 
       {places.length > 0 ? (

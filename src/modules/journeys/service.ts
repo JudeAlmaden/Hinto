@@ -99,6 +99,26 @@ export async function interruptJourney(
 }
 
 /**
+ * Closes an interrupted journey. An interruption is an ending, never a pause:
+ * the trip keeps its honest `interrupted` outcome and is never reopened.
+ */
+export async function closeInterruptedJourney(
+  db: SqlDatabase,
+  id: string,
+  now = Date.now(),
+): Promise<Journey | null> {
+  const journey = await getJourney(db, id);
+  if (!journey) return null;
+  if (journey.status !== 'interrupted') return journey;
+
+  if (journey.endedAt === null) {
+    await updateJourney(db, id, { endedAt: now });
+    capture('journey', 'journey_closed', { outcome: 'interrupted' });
+  }
+  return getJourney(db, id);
+}
+
+/**
  * Finds the journey to show on launch. An `active` journey whose last sample is
  * older than D14's limit (or that never sampled within the same limit) is
  * reported honestly as `interrupted` instead of pretending to track (D2/D10).

@@ -1,5 +1,5 @@
 /**
- * Layout utilities (Design.md §4). Tailwind-like spacing props on top of the
+ * Layout utilities (.agents/Design.md §4). Tailwind-like spacing props on top of the
  * design tokens, so a screen can say `gap="three" p="four"` instead of repeating
  * a StyleSheet entry for every stack, row and card interior.
  *

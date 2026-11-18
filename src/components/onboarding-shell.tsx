@@ -100,7 +100,7 @@ export function OnboardingShell({
           <Stack gap="one" align="center" style={styles.textContainer}>
             {tagline ? (
               <ThemedText style={[styles.tagline, { color: theme.accent }]}>
-                {tagline.toUpperCase()}
+                {tagline}
               </ThemedText>
             ) : null}
             <ThemedText style={styles.title}>{title}</ThemedText>
@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   tagline: {
-    fontSize: 12,
-    letterSpacing: 1.2,
+    fontSize: 13,
+    letterSpacing: 0.2,
     fontWeight: '700',
     marginBottom: 2,
   },

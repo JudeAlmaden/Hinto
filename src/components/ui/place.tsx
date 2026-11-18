@@ -81,7 +81,9 @@ export function PlaceCard({
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
             {strings.place.categories[place.category]}
             {distanceM !== undefined && distanceM !== null
-              ? ` · ${formatDistance(distanceM, unit)}`
+              ? `, ${formatCopy(strings.place.distanceAway, {
+                  distance: formatDistance(distanceM, unit),
+                })}`
               : ''}
           </ThemedText>
         ) : null}

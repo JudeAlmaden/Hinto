@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AppButton, Card, NavRow, ToggleRow } from '@/components/ui/controls';
@@ -21,6 +21,7 @@ import {
   startJourneySession,
 } from '@/modules/location/session';
 import type { ReadinessIssue } from '@/modules/permissions';
+import { getReadinessIssues } from '@/modules/permissions/service';
 import { formatCoordinates, formatRadius } from '@/utils/format';
 import { openActiveJourney } from '@/utils/navigation';
 import { suggestedEarlierRadius } from '@/utils/radius';
@@ -56,6 +57,8 @@ export default function JourneySetupScreen() {
   const journeyIdRef = useRef<string | null>(null);
   const startedRef = useRef(false);
   const destinationRef = useRef(destination);
+  /** True once Start was blocked, so the checklist may re-check itself. */
+  const blockedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +112,7 @@ export default function JourneySetupScreen() {
       openActiveJourney(router, id);
     } catch (reason) {
       if (reason instanceof JourneyStartBlockedError) {
+        blockedRef.current = true;
         setBlocked(reason.issues);
       } else {
         setError(reason instanceof Error ? reason.message : strings.common.errorBody);
@@ -117,6 +121,28 @@ export default function JourneySetupScreen() {
       setStarting(false);
     }
   };
+
+  // Android Settings closes without re-mounting this screen, so the checklist
+  // re-reads permissions on focus and whenever the app comes back to the front.
+  // Fixing a permission clears the rows instead of leaving stale crosses.
+  const refreshReadiness = useCallback(async () => {
+    if (!blockedRef.current) return;
+    const issues = await getReadinessIssues();
+    setBlocked(issues.filter((issue) => issue.severity === 'blocking'));
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshReadiness();
+    }, [refreshReadiness]),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active') void refreshReadiness();
+    });
+    return () => subscription.remove();
+  }, [refreshReadiness]);
 
   const checklist: ChecklistItem[] = blocked.map((issue) => ({
     key: issue.key,

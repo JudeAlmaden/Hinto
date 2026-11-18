@@ -18,7 +18,9 @@ export function ReadinessCard({
   onFix: () => void;
 }) {
   const theme = useTheme();
-  const ready = issues.length === 0;
+  // A suspected restriction is a real risk to the alarm, so it must not sit
+  // under a "Ready to wake you" heading.
+  const ready = issues.length === 0 && !restrictionSuspected;
 
   return (
     <Card style={styles.card}>

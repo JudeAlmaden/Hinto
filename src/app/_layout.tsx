@@ -185,7 +185,7 @@ export default function RootLayout() {
           <>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
             <AnimatedSplashOverlay />
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="journey/new" options={{ presentation: 'modal' }} />
               <Stack.Screen name="journey/[id]/options" options={{ presentation: 'modal' }} />
