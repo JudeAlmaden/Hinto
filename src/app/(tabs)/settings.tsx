@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
@@ -14,6 +13,7 @@ import { RADIUS_PRESETS_M } from '@/constants/alarms';
 import { getDatabase, resetStorage, retryStorage } from '@/db/client';
 import { useSettings } from '@/hooks/use-settings';
 import { useStorage } from '@/hooks/use-storage';
+import { useUpdateCheck } from '@/hooks/use-update-check';
 import type { Appearance } from '@/modules/settings/appearance';
 import { useAppearance } from '@/modules/settings/appearance';
 import type { ReadinessIssue } from '@/modules/permissions';
@@ -21,6 +21,7 @@ import { getReadinessIssues } from '@/modules/permissions/service';
 import { clearJourneyHistory, deleteAllData } from '@/modules/journeys/repository';
 import { usePlacesStore } from '@/modules/places/store';
 import { clearDiagnosticEvents } from '@/modules/diagnostics/repository';
+import { currentVersion, openRelease } from '@/modules/updates';
 import { formatRadius } from '@/utils/format';
 
 export default function SettingsScreen() {
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const storage = useStorage();
   const { settings, update } = useSettings();
   const loadPlaces = usePlacesStore((state) => state.load);
+  const updates = useUpdateCheck();
 
   const setAppearance = useAppearance((state) => state.setPreference);
 
@@ -42,8 +44,39 @@ export default function SettingsScreen() {
     }, []),
   );
 
-  const version = Constants.expoConfig?.version ?? '0.0.0';
+  const version = currentVersion();
   const issueCount = issues.length;
+
+  // A manual check answers honestly: an update to install, up to date, or
+  // GitHub unreachable — never a silent no-op.
+  const runUpdateCheck = async () => {
+    const result = await updates.checkNow();
+    if (!result.ok) {
+      Alert.alert(strings.updates.failedTitle, strings.updates.failedBody, [
+        { text: strings.common.done },
+      ]);
+      return;
+    }
+
+    const release = result.release;
+    if (release) {
+      Alert.alert(
+        formatCopy(strings.updates.cardTitle, { version: release.version }),
+        formatCopy(strings.updates.cardBody, { current: version }),
+        [
+          { text: strings.updates.cardDismiss, style: 'cancel' },
+          { text: strings.updates.cardAction, onPress: () => void openRelease(release) },
+        ],
+      );
+      return;
+    }
+
+    Alert.alert(
+      strings.updates.upToDateTitle,
+      formatCopy(strings.updates.upToDateBody, { version }),
+      [{ text: strings.common.done }],
+    );
+  };
 
   const pickRadius = () => {
     Alert.alert(strings.settings.defaultRadius, undefined, [
@@ -247,6 +280,24 @@ export default function SettingsScreen() {
           label={strings.settings.resetLocal}
           danger
           onPress={() => setResetVisible(true)}
+          last
+        />
+      </View>
+
+      <SectionLabel>{strings.updates.manualTitle}</SectionLabel>
+      <View>
+        <NavRow
+          label={strings.updates.check}
+          value={
+            updates.checking
+              ? strings.updates.checking
+              : updates.release
+                ? formatCopy(strings.updates.available, { version: updates.release.version })
+                : undefined
+          }
+          onPress={() =>
+            updates.release ? void openRelease(updates.release) : void runUpdateCheck()
+          }
           last
         />
       </View>

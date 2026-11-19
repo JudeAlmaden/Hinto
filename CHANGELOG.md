@@ -5,6 +5,23 @@ All notable changes to Hinto are documented here. Versions follow
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-19
+
+### Added
+- **In-app release notice**: when GitHub has a newer release, Home shows an amber "Hinto 0.7.0 is ready" strip with **Get the update** (opens the APK in the browser) and **Not now**, which hides that version until the next bump.
+- **One notification per release** on a quiet `updates-v1` channel (default importance, no sound, no vibration), so a version notice never borrows the alarm channel and can be muted on its own.
+- **Settings → App updates**: shows `v<version> available` when a release is known, and checks on demand with an honest answer — update available, up to date, or GitHub unreachable.
+- `src/modules/updates/` (release parsing, version comparison, notification delivery) plus `useUpdateCheck`, which runs on mount and on every foreground and shares a single request across screens.
+
+### Fixed
+- **Version drift**: `app.config.ts` now reads `version` from `package.json` instead of a hand-maintained copy, so the app reports the version its GitHub release is tagged with. It had been stuck on `0.6.2` while releases were at `0.6.5`, which would have made an update check claim an update for users already on the latest build.
+
+### Technical
+- Modified: `app.config.ts`, `src/app/(tabs)/index.tsx`, `src/app/(tabs)/settings.tsx`, `src/constants/strings.ts`, `src/modules/diagnostics/index.ts`, `src/modules/settings/schema.ts`, `src/modules/settings/__tests__/schema.test.ts`, `package.json`, `package-lock.json`, `CHANGELOG.md`
+- New: `src/modules/updates/{index,release,version,notifications}.ts`, `src/hooks/use-update-check.ts`, `src/components/home/update-card.tsx`, `src/modules/updates/__tests__/updates.test.ts`
+- Settings gain `update_check { dismissed_version, notified_version }` through the existing JSON settings table — no migration.
+- Tests: 158 passing across 19 suites — lint/typecheck clean
+
 ## [0.6.5] - 2026-11-18
 
 ### Added

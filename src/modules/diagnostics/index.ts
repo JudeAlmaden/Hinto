@@ -17,7 +17,8 @@ export type DiagnosticKind =
   | 'db'
   | 'settings'
   | 'crash'
-  | 'session';
+  | 'session'
+  | 'update';
 
 export interface DiagnosticEvent {
   kind: DiagnosticKind;

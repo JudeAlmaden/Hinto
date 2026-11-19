@@ -23,6 +23,7 @@ describe('settings defaults (D5)', () => {
       battery_saver: false,
       distance_unit: 'km',
       onboarding_version: 0,
+      update_check: { dismissed_version: null, notified_version: null },
     });
   });
 

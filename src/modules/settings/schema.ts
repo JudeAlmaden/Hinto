@@ -17,6 +17,15 @@ export const DISTANCE_UNITS = ['km', 'mi'] as const;
 export type DistanceUnit = (typeof DISTANCE_UNITS)[number];
 export const ALARM_SOUND_IDS = ['classic', 'chime', 'beep', 'custom'] as const;
 
+/**
+ * Release-notice bookkeeping: the version the user hid with "Not now", and the
+ * one already announced by a notification, so neither repeats for that tag.
+ */
+export const updateCheckSchema = z.object({
+  dismissed_version: z.string().nullable().default(null),
+  notified_version: z.string().nullable().default(null),
+});
+
 export const appSettingsSchema = z.object({
   default_radius_m: z.number().int().min(MIN_RADIUS_M).max(MAX_RADIUS_M).default(DEFAULT_RADIUS_M),
   alarm_sound_id: z.enum(ALARM_SOUND_IDS).default('classic'),
@@ -32,6 +41,7 @@ export const appSettingsSchema = z.object({
   battery_saver: z.boolean().default(false),
   distance_unit: z.enum(DISTANCE_UNITS).default('km'),
   onboarding_version: z.number().int().min(0).default(0),
+  update_check: updateCheckSchema.default({ dismissed_version: null, notified_version: null }),
 });
 
 export type AppSettings = z.infer<typeof appSettingsSchema>;

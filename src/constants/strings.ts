@@ -515,6 +515,23 @@ export const strings = {
     allGood: 'Ready to alert',
   },
 
+  updates: {
+    cardTitle: 'Hinto {version} is ready',
+    cardBody: "You're on {current}. Download the new APK to get the latest fixes.",
+    cardAction: 'Get the update',
+    cardDismiss: 'Not now',
+    notificationTitle: 'Hinto {version} is available',
+    notificationBody: 'Open Hinto to download the new version.',
+    manualTitle: 'App updates',
+    check: 'Check for updates',
+    checking: 'Checking…',
+    available: 'v{version} available',
+    upToDateTitle: 'You are up to date',
+    upToDateBody: 'Hinto {version} is the latest version.',
+    failedTitle: 'Could not check',
+    failedBody: 'Hinto could not reach GitHub. Check your connection and try again.',
+  },
+
   common: {
     retry: 'Retry',
     cancel: 'Cancel',

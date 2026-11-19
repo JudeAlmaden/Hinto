@@ -1,3 +1,8 @@
+// The release workflow tags from `package.json`, so the app reports the same
+// version the GitHub release does instead of a hand-maintained copy. This is
+// also what the in-app update check compares against.
+import pkg from './package.json';
+
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /**
@@ -13,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Hinto',
   slug: 'hinto',
-  version: '0.6.2',
+  version: pkg.version,
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'hinto',

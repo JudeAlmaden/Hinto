@@ -8,6 +8,7 @@ import { NextStopCard } from '@/components/home/next-stop-card';
 import { RecentList } from '@/components/home/recent-list';
 import { ReadinessCard } from '@/components/home/readiness-card';
 import { SavedPlaces } from '@/components/home/saved-places';
+import { UpdateCard } from '@/components/home/update-card';
 import { ThemedText } from '@/components/themed-text';
 import { Icon } from '@/components/ui/icon';
 import { Row, Stack } from '@/components/ui/layout';
@@ -28,9 +29,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { usePlaces } from '@/hooks/use-places';
 import { useStorage } from '@/hooks/use-storage';
 import { useTracking } from '@/hooks/use-tracking';
+import { useUpdateCheck } from '@/hooks/use-update-check';
 import { DEFAULT_SETTINGS } from '@/modules/settings/schema';
 import type { Journey } from '@/modules/journeys';
 import { listJourneys, listRecentDestinations } from '@/modules/journeys/repository';
+import { currentVersion } from '@/modules/updates';
 import {
   endJourneySession,
   pauseJourneySession,
@@ -58,6 +61,7 @@ export default function HomeScreen() {
   const storage = useStorage();
   const { places } = usePlaces();
   const theme = useTheme();
+  const updates = useUpdateCheck();
 
   const journey = active.data?.journey ?? null;
   const settings = active.data?.settings ?? DEFAULT_SETTINGS;
@@ -306,6 +310,15 @@ export default function HomeScreen() {
           </Row>
         </Pressable>
       )}
+
+      {updates.release ? (
+        <UpdateCard
+          release={updates.release}
+          current={currentVersion()}
+          onOpen={updates.open}
+          onDismiss={() => void updates.dismiss()}
+        />
+      ) : null}
 
       {storage.state === 'unavailable' ? (
         <Card style={styles.strip}>
